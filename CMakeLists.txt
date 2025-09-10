@@ -4,6 +4,10 @@ set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 21)
 set (PROJECT_VERSION_REV 0)
 set (PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_REV})
+
+project(cvGPUSpeedup VERSION ${PROJECT_VERSION} LANGUAGES CXX CUDA 
+DESCRIPTION "Make OpenCV-CUDA code run faster on the GPU" HOMEPAGE_URL "https://github.com/morousg/cvGPUSpeedup" )
+
 include (cmake/cmake_init.cmake)
 include (cmake/doxygen.cmake)
 include (cmake/targets/virtualfolders.cmake)
@@ -11,8 +15,6 @@ include (cmake/deploy/deploy_dependencies.cmake)
 include (cmake/archflags.cmake)
 include (cmake/libs/cuda/archs.cmake)
 include (cmake/generators/version_header.cmake)
-project(cvGPUSpeedup VERSION ${PROJECT_VERSION} LANGUAGES CXX CUDA 
-DESCRIPTION "Make OpenCV-CUDA code run faster on the GPU" HOMEPAGE_URL "https://github.com/morousg/cvGPUSpeedup" )
 include (cmake/libs/fkl.cmake)
 include (cmake/libs/cuda/cuda.cmake)
 
