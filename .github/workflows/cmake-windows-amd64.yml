@@ -16,11 +16,13 @@ jobs:
       matrix:         
       #host compiler, version, cuda compiler, cuda version,
       #disabling ,"llvm,21.1.0,llvm,12.1", not working on windows yet
-        toolset: ["cl,14.16,nvcc,11.8","cl,14.44,nvcc,12.9","cl,14.44"]
+        toolset: ["cl,14.16,nvcc,11.8","cl,14.44,nvcc,12.9"]
  
 
     steps:
     - uses: actions/checkout@v4
+      with:
+          submodules: recursive
 
   
     - name: Set reusable strings  
@@ -55,8 +57,8 @@ jobs:
         }
         Import-Module (Get-ChildItem $vsInstallationPath -Recurse -File -Filter Microsoft.VisualStudio.DevShell.dll).FullName           
         Enter-VsDevShell -VsInstallPath $vsInstallationPath -SkipAutomaticLocation -DevCmdArguments $devargs      
-        
-        cmake -G "Ninja"  -B ${{steps.strings.outputs.build-output-dir}} -DCMAKE_CUDA_COMPILER="$env:CUDACXX" -DCMAKE_BUILD_TYPE=Release -S ${{github.workspace}};        
+ 
+        cmake -G "Ninja"  -B ${{steps.strings.outputs.build-output-dir}} -DOPENCV_DIR=D:\bin\opencv-4.12.0.cuda$($y[3]) -DCMAKE_CUDA_COMPILER="$env:CUDACXX" -DCMAKE_BUILD_TYPE=Release -S ${{github.workspace}};        
         #worksaround for rules.ninja generating empty path
         if  ($y[2].contains("nvcc"))  {
         (Get-Content ${{steps.strings.outputs.build-output-dir}}\CMakeFiles\rules.ninja) -replace "\\nvcc\\bin\\nvcc.exe", "$env:CUDACXX" | Set-Content ${{steps.strings.outputs.build-output-dir}}\CMakeFiles\rules.ninja
