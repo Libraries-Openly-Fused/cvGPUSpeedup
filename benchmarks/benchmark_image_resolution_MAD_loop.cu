@@ -29,22 +29,19 @@ constexpr size_t NUM_EXPERIMENTS = 10;
 constexpr size_t FIRST_VALUE = 10;
 constexpr size_t INCREMENT = 100;
 #elif (CUDART_MAJOR_VERSION == 12)
-constexpr size_t NUM_EXPERIMENTS = 30;
-constexpr size_t FIRST_VALUE = 10;
-constexpr size_t INCREMENT = 100;
+constexpr size_t NUM_EXPERIMENTS = 60;
+constexpr size_t FIRST_VALUE = 100;
+constexpr size_t INCREMENT = 282270;
 #endif // CUDART_MAJOR_VERSION
 constexpr std::array<size_t, NUM_EXPERIMENTS> batchValues = arrayIndexSecuence<FIRST_VALUE, INCREMENT, NUM_EXPERIMENTS>;
 
 template <int CV_TYPE_I, int CV_TYPE_O>
 struct VerticalFusionMAD {
-    static inline void execute(const std::array<cv::cuda::GpuMat, 1>& crops,
-        const int& BATCH,
-        const cv::cuda::Stream& cv_stream,
-        const float& alpha,
-        const cv::Scalar& val_mul,
-        const cv::Scalar& val_add,
-        const cv::cuda::GpuMat& d_tensor_output,
-        const cv::Size& cropSize) {
+    static inline void execute(const cv::cuda::GpuMat& cvInput,
+                               cv::cuda::Stream& cv_stream,
+                               const cv::Scalar& val_mul,
+                               const cv::Scalar& val_add,
+                               const cv::cuda::GpuMat& d_output) {
         using InputType = CUDA_T(CV_TYPE_I);
         using OutputType = CUDA_T(CV_TYPE_O);
         using Loop = fk::Binary<fk::StaticLoop<fk::FusedOperation<fk::Mul<OutputType>, fk::Add<OutputType>>, 200/2>>;
@@ -53,8 +50,26 @@ struct VerticalFusionMAD {
         fk::get<0>(loop.params).params = cvGS::cvScalar2CUDAV<CV_TYPE_O>::get(val_mul);
         fk::get<1>(loop.params).params = cvGS::cvScalar2CUDAV<CV_TYPE_O>::get(val_add);
 
-        cvGS::executeOperations<false>(crops, cv_stream, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>((float)alpha), loop,
-                                cvGS::write<CV_TYPE_O>(d_tensor_output, cropSize));
+        if (cvInput.rows > 1) {
+            throw std::runtime_error("VerticalFusionMAD only supports 1D input data.");
+        }
+        const uint inputWidth = static_cast<uint>(cvInput.cols);
+        const uint outputWidth = static_cast<uint>(d_output.cols);
+
+        const fk::RawPtr<fk::_1D, InputType> fkInput{ reinterpret_cast<InputType*>(cvInput.data), { inputWidth, static_cast<uint>(inputWidth * sizeof(InputType)) }};
+        const auto readOp = fk::PerThreadRead<fk::_1D, InputType>::build(fkInput);
+
+        const fk::RawPtr<fk::_1D, OutputType> fkOutput{ reinterpret_cast<OutputType*>(d_output.data), { outputWidth, static_cast<uint>(outputWidth * sizeof(OutputType)) } };
+        const auto writeOp = fk::PerThreadWrite<fk::_1D, OutputType>::build(fkOutput);
+
+        constexpr bool THREAD_FUSION = false;
+        const auto tDetails = fk::TransformDPP<fk::ParArch::GPU_NVIDIA, void>::build_details<THREAD_FUSION>(readOp, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>(), loop, writeOp);
+
+        const dim3 block(256);
+        const dim3 grid(ceil(inputWidth / static_cast<float>(block.x)));
+        const cudaStream_t stream = cv::cuda::StreamAccessor::getStream(cv_stream);
+        fk::launchTransformDPP_Kernel<fk::ParArch::GPU_NVIDIA, true><<<grid, block, 0, stream>>>(tDetails, readOp, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>(), loop, writeOp);
+        gpuErrchk(cudaGetLastError());
     }
 };
 
@@ -62,11 +77,12 @@ struct VerticalFusionMAD {
 template <int CV_TYPE_I, int CV_TYPE_O, size_t BATCH>
 bool benchmark_image_resolution_MAD_loop(cv::cuda::Stream& cv_stream, bool enabled) {
     constexpr size_t NUM_ELEMS_X = BATCH;
-    constexpr size_t NUM_ELEMS_Y = BATCH;
-    constexpr size_t REAL_BATCH{ 1 };
+    constexpr size_t NUM_ELEMS_Y = 1;
     std::stringstream error_s;
     bool passed = true;
     bool exception = false;
+
+    static_assert(BATCH != 0, "Must not be zero");
 
     if (enabled) {
         struct Parameters {
@@ -89,56 +105,36 @@ bool benchmark_image_resolution_MAD_loop(cv::cuda::Stream& cv_stream, bool enabl
         const cv::Scalar val_mul = params.at(CV_MAT_CN(CV_TYPE_O) - 1).val_mul;
         const cv::Scalar val_add = params.at(CV_MAT_CN(CV_TYPE_O) - 1).val_add;
         try {
-            const cv::Size cropSize(NUM_ELEMS_X, NUM_ELEMS_Y);
+            const cv::Size dataSize(NUM_ELEMS_X, NUM_ELEMS_Y);
 
-            std::array<cv::cuda::GpuMat, REAL_BATCH> crops;
-            std::array<cv::cuda::GpuMat, REAL_BATCH> d_output_cv;
-            std::array<cv::Mat, REAL_BATCH>          h_output_cv;
-            for (int crop_i = 0; crop_i < REAL_BATCH; crop_i++) {
-                crops[crop_i] = cv::cuda::GpuMat(cropSize, CV_TYPE_I, val_init);
-                h_output_cv[crop_i].create(cropSize, CV_TYPE_O);
-                d_output_cv[crop_i].create(cropSize, CV_TYPE_O);
-            }
-
-            cv::cuda::GpuMat d_output_cvGS(REAL_BATCH, cropSize.width * cropSize.height, CV_TYPE_O);
-            d_output_cvGS.step = cropSize.width * cropSize.height * sizeof(CUDA_T(CV_TYPE_O));
-            cv::Mat h_output_cvGS(REAL_BATCH, cropSize.width * cropSize.height, CV_TYPE_O);
+            cv::cuda::GpuMat cvInput(dataSize, CV_TYPE_I, val_init);
+            cv::cuda::GpuMat cvOutput(dataSize, CV_TYPE_O, cv::Scalar(0));
+            cv::cuda::GpuMat cvTemp(dataSize, CV_TYPE_O, cv::Scalar(0));
+            cv::Mat h_cvOutput(dataSize, CV_TYPE_O, cv::Scalar(0));
+            cv::cuda::GpuMat cvGSOutput(dataSize, CV_TYPE_O, cv::Scalar(0));
+            cv::Mat h_cvGSOutput(dataSize, CV_TYPE_O, cv::Scalar(0));
 
             START_OCV_BENCHMARK
-            // OpenCV version
-            for (int crop_i = 0; crop_i < REAL_BATCH; crop_i++) {
-                crops[crop_i].convertTo(d_output_cv[crop_i], CV_TYPE_O, alpha, cv_stream);
-                for (int numOp = 0; numOp < 200; numOp+=2) {
-                    cv::cuda::multiply(d_output_cv[crop_i], val_mul, d_output_cv[crop_i], 1.0, -1, cv_stream);
-                    cv::cuda::add(d_output_cv[crop_i], val_add, d_output_cv[crop_i], cv::noArray(), -1, cv_stream);
-                }
+            // cvGS individual kernels
+            
+            cvInput.convertTo(cvOutput, CV_TYPE_O, 1, cv_stream);
+            for (int numOp = 0; numOp < 200; numOp+=2) {
+                cv::cuda::multiply(cvOutput, val_mul, cvTemp, 1.0, -1, cv_stream);
+                cv::cuda::add(cvTemp, val_add, cvOutput, cv::noArray(), -1, cv_stream);
             }
-
             STOP_OCV_START_CVGS_BENCHMARK
             // cvGPUSpeedup
-            VerticalFusionMAD<CV_TYPE_I, CV_TYPE_O>::execute(crops, REAL_BATCH, cv_stream, alpha, val_mul, val_add, d_output_cvGS, cropSize);
-
+            VerticalFusionMAD<CV_TYPE_I, CV_TYPE_O>::execute(cvInput, cv_stream, val_mul, val_add, cvGSOutput);
             STOP_CVGS_BENCHMARK
 
             // Download results
-            for (int crop_i = 0; crop_i < REAL_BATCH; crop_i++) {
-                d_output_cv[crop_i].download(h_output_cv[crop_i], cv_stream);
-            }
-            d_output_cvGS.download(h_output_cvGS, cv_stream);
+            cvOutput.download(h_cvOutput, cv_stream);
+            cvGSOutput.download(h_cvGSOutput, cv_stream);
 
             cv_stream.waitForCompletion();
 
             // Verify results
-            for (int crop_i = 0; crop_i < REAL_BATCH; crop_i++) {
-                cv::Mat cvRes = h_output_cv[crop_i];
-                cv::Mat cvGSRes = cv::Mat(cropSize.height, cropSize.width, CV_TYPE_O, h_output_cvGS.row(crop_i).data);
-                bool passedThisTime = compareAndCheck<CV_TYPE_O>(cropSize.width, cropSize.height, cvRes, cvGSRes);
-                passed &= passedThisTime;
-                if (!passedThisTime) {
-                    int a = 0;
-                    a++;
-                }
-            }
+            passed &= compareAndCheck<CV_TYPE_O>(h_cvOutput, h_cvGSOutput);
             if (!passed) {
                 std::cout << "Failed for resolution = " << BATCH << "x" << BATCH << std::endl;
             }
@@ -195,6 +191,7 @@ int launch() {
     // Warming up for the benchmarks
     warmup = true;
     LAUNCH_TESTS(CV_8UC1, CV_32FC1)
+    LAUNCH_TESTS(CV_32FC1, CV_32FC1)
     LAUNCH_TESTS(CV_8UC3, CV_32FC3)
     LAUNCH_TESTS(CV_16UC4, CV_32FC4)
     LAUNCH_TESTS(CV_32SC4, CV_32FC4)
@@ -202,6 +199,7 @@ int launch() {
     warmup = false;
 
     LAUNCH_TESTS(CV_8UC1, CV_32FC1)
+    LAUNCH_TESTS(CV_32FC1, CV_32FC1)
     LAUNCH_TESTS(CV_8UC3, CV_32FC3)
     LAUNCH_TESTS(CV_16UC4, CV_32FC4)
     LAUNCH_TESTS(CV_32SC4, CV_32FC4)

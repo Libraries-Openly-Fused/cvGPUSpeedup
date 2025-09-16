@@ -90,7 +90,7 @@ bool compareAndCheck(cv::Mat& cvVersion, cv::Mat& cvGSVersion) {
     bool passed = true;
     cv::Mat diff = cv::abs(cvVersion - cvGSVersion);
     if constexpr (CV_MAT_CN(T) == 1) {
-        return checkResults<CV_MAT_DEPTH(T)>(NUM_ELEMS_X, NUM_ELEMS_Y, diff);
+        passed &= checkResults<CV_MAT_DEPTH(T)>(NUM_ELEMS_X, NUM_ELEMS_Y, diff);
     } else {
         std::vector<cv::Mat> h_comparison1C(CV_MAT_CN(T));
         cv::split(diff, h_comparison1C);
@@ -98,8 +98,8 @@ bool compareAndCheck(cv::Mat& cvVersion, cv::Mat& cvGSVersion) {
         for (int i = 0; i < CV_MAT_CN(T); i++) {
             passed &= checkResults<CV_MAT_DEPTH(T)>(NUM_ELEMS_X, NUM_ELEMS_Y, h_comparison1C.at(i));
         }
-        return passed;
     }
+    return passed;
 }
 
 struct BenchmarkResultsNumbers {

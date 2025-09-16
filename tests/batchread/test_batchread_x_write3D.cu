@@ -25,9 +25,9 @@ constexpr char VARIABLE_DIMENSION[] {"Batch size"};
 #define BENCHMARK_ENABLED false
 #endif
 
-constexpr size_t FIRST_VALUE = 1;
-constexpr size_t INCREMENT = 5;
-constexpr size_t NUM_EXPERIMENTS = 5;
+constexpr size_t FIRST_VALUE = 50;
+constexpr size_t INCREMENT = 1;
+constexpr size_t NUM_EXPERIMENTS = 1;
 constexpr std::array<size_t, NUM_EXPERIMENTS> batchValues = arrayIndexSecuence<FIRST_VALUE, INCREMENT, NUM_EXPERIMENTS>;
 
 template <int CV_TYPE_I, int CV_TYPE_O, int BATCH>
@@ -46,10 +46,10 @@ bool test_batchread_x_write3D(size_t NUM_ELEMS_X, size_t NUM_ELEMS_Y, cv::cuda::
 
         double alpha = 1.0;
 
-        const Parameters one{ {10u}, {alpha}, {1.f}, {3.2f} };
-        const Parameters two{ {10u, 20u}, {alpha, alpha}, {1.f, 4.f}, {3.2f, 0.6f} };
-        const Parameters three{ {10u, 20u, 30u}, {alpha, alpha, alpha}, {1.f, 4.f, 3.2f}, {3.2f, 0.6f, 11.8f} };
-        const Parameters four{ {10u, 20u, 30u, 40u}, {alpha, alpha, alpha, alpha}, {1.f, 4.f, 3.2f, 0.5f}, {3.2f, 0.6f, 11.8f, 33.f} };
+        const Parameters one{ {10u}, {alpha}, {1.5f}, {3.2f} };
+        const Parameters two{ {10u, 20u}, {alpha, alpha}, {1.5f, 4.f}, {3.2f, 0.6f} };
+        const Parameters three{ {10u, 20u, 30u}, {alpha, alpha, alpha}, {1.5f, 4.f, 3.2f}, {3.2f, 0.6f, 11.8f} };
+        const Parameters four{ {10u, 20u, 30u, 40u}, {alpha, alpha, alpha, alpha}, {1.5f, 4.f, 3.2f, 0.5f}, {3.2f, 0.6f, 11.8f, 33.f} };
         const std::array<Parameters, 4> params{ one, two, three, four };
 
         const cv::Scalar val_init = params.at(CV_MAT_CN(CV_TYPE_O) - 1).init;
@@ -90,11 +90,10 @@ bool test_batchread_x_write3D(size_t NUM_ELEMS_X, size_t NUM_ELEMS_Y, cv::cuda::
 
             STOP_OCV_START_CVGS_BENCHMARK
             cvGS::executeOperations<false>(crops, cv_stream,
-                cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>((float)alpha),
-                cvGS::subtract<CV_TYPE_O>(val_sub),
-                cvGS::divide<CV_TYPE_O>(val_div),
-                cvGS::write<CV_TYPE_O>(d_tensor_output, cropSize));
-
+                                            cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>((float)alpha),
+                                            cvGS::subtract<CV_TYPE_O>(val_sub),
+                                            cvGS::divide<CV_TYPE_O>(val_div),
+                                            cvGS::write<CV_TYPE_O>(d_tensor_output, cropSize));
             STOP_CVGS_BENCHMARK
 
             d_tensor_output.download(h_tensor_output, cv_stream);
@@ -175,6 +174,8 @@ int launch() {
     LAUNCH_TESTS(CV_16SC1, CV_32FC1)
     LAUNCH_TESTS(CV_32SC1, CV_32FC1)
     LAUNCH_TESTS(CV_32FC1, CV_32FC1)
+    LAUNCH_TESTS(CV_32FC1, CV_64FC1)
+    LAUNCH_TESTS(CV_64FC1, CV_64FC1)
     LAUNCH_TESTS(CV_8UC2, CV_32FC2)
     LAUNCH_TESTS(CV_8UC3, CV_32FC3)
     LAUNCH_TESTS(CV_8UC4, CV_32FC4)
@@ -204,6 +205,8 @@ int launch() {
     LAUNCH_TESTS(CV_16SC1, CV_32FC1)
     LAUNCH_TESTS(CV_32SC1, CV_32FC1)
     LAUNCH_TESTS(CV_32FC1, CV_32FC1)
+    LAUNCH_TESTS(CV_32FC1, CV_64FC1)
+    LAUNCH_TESTS(CV_64FC1, CV_64FC1)
     LAUNCH_TESTS(CV_8UC2, CV_32FC2)
     LAUNCH_TESTS(CV_8UC3, CV_32FC3)
     LAUNCH_TESTS(CV_8UC4, CV_32FC4)

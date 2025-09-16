@@ -20,7 +20,8 @@
 
 template <int CV_TYPE_I, int CV_TYPE_O, int OPS_PER_ITER, size_t NumOps, typename DeviceFunction>
 struct VerticalFusion {
-    static inline void execute(const std::array<cv::cuda::GpuMat, 1>& crops,
+    template <size_t BATCH>
+    static inline void execute(const std::array<cv::cuda::GpuMat, BATCH>& crops,
         const cv::cuda::Stream& cv_stream,
         const float& alpha,
         const cv::cuda::GpuMat& d_tensor_output,
@@ -28,29 +29,22 @@ struct VerticalFusion {
         const DeviceFunction& dFunc) {
         using InputType = CUDA_T(CV_TYPE_I);
         using OutputType = CUDA_T(CV_TYPE_O);
-        using Loop = fk::Binary<fk::StaticLoop<fk::StaticLoop<
+
+        if constexpr (NumOps < INCREMENT) {
+            using Loop = fk::Binary<fk::StaticLoop<typename DeviceFunction::Operation, NumOps / OPS_PER_ITER>>;
+
+            const Loop loop{{dFunc.params}};
+
+            cvGS::executeOperations<false>(crops, cv_stream, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>((float)alpha), loop, cvGS::write<CV_TYPE_O>(d_tensor_output, cropSize));
+        } else {
+            using Loop = fk::Binary<fk::StaticLoop<fk::StaticLoop<
             typename DeviceFunction::Operation, INCREMENT / OPS_PER_ITER>, NumOps / INCREMENT>>;
 
-        Loop loop;
-        loop.params = dFunc.params;
+            const Loop loop{{dFunc.params}};
 
-        cvGS::executeOperations<false>(crops, cv_stream, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>((float)alpha), loop, cvGS::write<CV_TYPE_O>(d_tensor_output, cropSize));
-    }
-    static inline void execute(const std::array<cv::cuda::GpuMat, 50>& crops,
-        const cv::cuda::Stream& cv_stream,
-        const float& alpha,
-        const cv::cuda::GpuMat& d_tensor_output,
-        const cv::Size& cropSize,
-        const DeviceFunction& dFunc) {
-        using InputType = CUDA_T(CV_TYPE_I);
-        using OutputType = CUDA_T(CV_TYPE_O);
-        using Loop = fk::Binary<fk::StaticLoop<fk::StaticLoop<
-            typename DeviceFunction::Operation, INCREMENT / OPS_PER_ITER>, NumOps / INCREMENT>>;
-
-        Loop loop;
-        loop.params = dFunc.params;
-
-        cvGS::executeOperations<false>(crops, cv_stream, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>((float)alpha), loop, cvGS::write<CV_TYPE_O>(d_tensor_output, cropSize));
+            cvGS::executeOperations<false>(crops, cv_stream, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>((float)alpha), loop, cvGS::write<CV_TYPE_O>(d_tensor_output, cropSize));
+        }
+        
     }
 };
 
