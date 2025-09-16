@@ -100,10 +100,6 @@ bool benchmark_vertical_fusion_loopMulAdd(size_t NUM_ELEMS_X, size_t NUM_ELEMS_Y
                 cv::Mat cvGSRes = cv::Mat(cropSize.height, cropSize.width, CV_TYPE_O, h_output_cvGS.row(crop_i).data);
                 bool passedThisTime = compareAndCheck<CV_TYPE_O>(cropSize.width, cropSize.height, cvRes, cvGSRes);
                 passed &= passedThisTime;
-                if (!passedThisTime) {
-                    int a = 0;
-                    a++;
-                }
             }
             if (!passed) {
                 std::cout << "Failed for num fused operations = " << NUM_OPS << std::endl;
