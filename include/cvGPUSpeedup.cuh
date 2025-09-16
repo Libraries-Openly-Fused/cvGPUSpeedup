@@ -1,4 +1,4 @@
-/* Copyright 2025 Grup Mediapro, S.L.U.
+/* Copyright 2025 Grup Mediapro, S.L.U. (Oscar Amoros Huguet)
    Copyright 2023-2025 Oscar Amoros Huguet
 
    Licensed under the Apache License, Version 2.0 (the "License");

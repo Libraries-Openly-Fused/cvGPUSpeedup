@@ -6,13 +6,13 @@ endif()
 # cuda version and compiler detection
 include(cmake/cuda_init.cmake)
 
-#
-if(CMAKE_GENERATOR MATCHES "Ninja")
-    set(OUT_DIR "${CMAKE_BINARY_DIR}/bin/")
-else()
+if(MSVC)
     set(OUT_DIR "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+    
+else()
+    set(OUT_DIR "${CMAKE_BINARY_DIR}/bin/")
 endif()
-
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUT_DIR})
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo" CACHE STRING "" FORCE)
 
 # If CMake does not have a mapping for RelWithDebInfo in imported targets it will map those configuration to the first
