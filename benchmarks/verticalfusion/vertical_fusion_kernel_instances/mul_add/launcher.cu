@@ -15,7 +15,7 @@
 #include "tests/main.h"
 
 #include "tests/testsCommon.cuh"
-#include <fused_kernel/algorithms/basic_ops/static_loop.cuh>
+#include <fused_kernel/algorithms/basic_ops/static_loop.h>
 #include <cvGPUSpeedup.cuh>
 #include <opencv2/cudaimgproc.hpp>
 

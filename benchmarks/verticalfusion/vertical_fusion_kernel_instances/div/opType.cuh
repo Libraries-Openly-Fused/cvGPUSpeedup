@@ -16,7 +16,7 @@
 #define OPTYPE_H
 
 #include <cvGPUSpeedup.cuh>
-#include <fused_kernel/algorithms/basic_ops/arithmetic.cuh>
+#include <fused_kernel/algorithms/basic_ops/arithmetic.h>
 
 using DivOutType = float;
 using FuncType = decltype(fk::Div<DivOutType>::build(std::declval<DivOutType>())

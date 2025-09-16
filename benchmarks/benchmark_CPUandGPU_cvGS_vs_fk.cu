@@ -93,7 +93,7 @@ bool test_cvGS_VS_fk_CPU_and_GPU(cv::cuda::Stream& cv_stream, bool enabled) {
             }
 
             // Setting up fk variables
-            const std::array<fk::RawPtr<fk::_2D, uchar3>, BATCH> fk_crops{ cvGS::gpuMat2RawPtr2D_arr<uchar3, BATCH>(crops) };
+            const std::array<fk::RawPtr<fk::ND::_2D, uchar3>, BATCH> fk_crops{ cvGS::gpuMat2RawPtr2D_arr<uchar3, BATCH>(crops) };
             const fk::Size fk_size{up.width, up.height};
             cv::Mat h_fk_output(BATCH, up.width * up.height * CV_MAT_CN(CV_32FC3), CV_MAT_DEPTH(CV_32FC3));
             cv::cuda::GpuMat d_fk_output(BATCH, up.width * up.height * CV_MAT_CN(CV_32FC3), CV_MAT_DEPTH(CV_32FC3));
@@ -107,9 +107,9 @@ bool test_cvGS_VS_fk_CPU_and_GPU(cv::cuda::Stream& cv_stream, bool enabled) {
             const float3 fk_defaultBackground = cvGS::cvScalar2CUDAV<CV_32FC3>::get(val_init_output);
 
             constexpr fk::AspectRatio AR{ fk::PRESERVE_AR };
-            constexpr fk::InterpolationType IType{ fk::INTER_LINEAR };
+            constexpr fk::InterpolationType IType{ fk::InterpolationType::INTER_LINEAR };
 
-            using PixelReadOp = fk::PerThreadRead<fk::_2D, uchar3>;
+            using PixelReadOp = fk::PerThreadRead<fk::ND::_2D, uchar3>;
             using O = float3;
             const O backgroundValue = fk::make_set<float3>(128.f);
 
@@ -128,9 +128,9 @@ bool test_cvGS_VS_fk_CPU_and_GPU(cv::cuda::Stream& cv_stream, bool enabled) {
             const auto backgroundArr = fk::make_set_std_array<BATCH>(backgroundValue);
             using Resize = fk::Resize<IType, AR, fk::Read<PixelReadOp>>;
             const auto resizeDFs = Resize::build_batch(readOP, sizeArr, backgroundArr);
-            const auto resizeOp = fk::BatchRead<BATCH, fk::CONDITIONAL_WITH_DEFAULT>::build(resizeDFs, BATCH, backgroundValue);
+            const auto resizeOp = fk::BatchRead<BATCH, fk::AspectRatio::CONDITIONAL_WITH_DEFAULT>::build(resizeDFs, BATCH, backgroundValue);
 
-            fk::executeOperations(stream,
+            fk::executeOperations<fk::TransformDPP<>>(stream,
                 resizeOp,
                 fk::Unary<fk::ColorConversion<fk::COLOR_RGB2BGR, float3, float3>>{},
                 fk::Binary<fk::Mul<float3>>{fk_val_alpha},

@@ -14,8 +14,11 @@
    limitations under the License. */
 
 #include "tests/testsCommon.cuh"
-#include <fused_kernel/algorithms/basic_ops/arithmetic.cuh>
-#include <fused_kernel/fused_kernel.cuh>
+#include <fused_kernel/algorithms/basic_ops/arithmetic.h>
+#include <fused_kernel/core/utils/utils.h>
+#include <fused_kernel/core/utils/cuda_vector_utils.h>
+#include <fused_kernel/fused_kernel.h>
+#include <fused_kernel/core/data/ptr_utils.h>
 #include <cvGPUSpeedup.cuh>
 
 
@@ -28,13 +31,13 @@ bool testCircularBatchRead() {
     constexpr uint FIRST = 4;
 
     cudaStream_t stream;
-
     gpuErrchk(cudaStreamCreate(&stream));
+    const fk::Stream fk_stream(stream);
 
     std::vector<fk::Ptr2D<uchar3>> h_inputAllocations;
 
     std::vector<fk::Ptr2D<uchar3>> inputAllocations;
-    std::array<fk::RawPtr<fk::_2D, uchar3>, BATCH> input;
+    std::array<fk::RawPtr<fk::ND::_2D, uchar3>, BATCH> input;
     fk::Tensor<uchar3> output;
     fk::Tensor<uchar3> h_output;
 
@@ -43,7 +46,7 @@ bool testCircularBatchRead() {
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
                 const fk::Point p{ x, y, 0 };
-                *fk::PtrAccessor<fk::_2D>::point(p, h_temp.ptr()) = fk::make_<uchar3>(i, i, i);
+                *fk::PtrAccessor<fk::ND::_2D>::point(p, h_temp.ptr()) = fk::make_<uchar3>(i, i, i);
             }
         }
         h_inputAllocations.push_back(h_temp);
@@ -56,14 +59,14 @@ bool testCircularBatchRead() {
     output.allocTensor(WIDTH, HEIGHT, BATCH);
     h_output.allocTensor(WIDTH, HEIGHT, BATCH, 1, fk::MemType::HostPinned);
 
-    fk::Read<fk::CircularBatchRead<fk::Ascendent, fk::PerThreadRead<fk::_2D, uchar3>, BATCH>> circularBatchRead;
+    fk::Read<fk::CircularBatchRead<fk::CircularDirection::Ascendent, fk::PerThreadRead<fk::ND::_2D, uchar3>, BATCH>> circularBatchRead;
     circularBatchRead.params.first = FIRST;
     for (int i = 0; i < BATCH; i++) {
         circularBatchRead.params.opData[i].params = input[i];
     }
-    fk::WriteInstantiableOperation<fk::PerThreadWrite<fk::_3D, uchar3>> write3D{ {output} };
+    fk::Write<fk::PerThreadWrite<fk::ND::_3D, uchar3>> write3D{ {output} };
 
-    fk::executeOperations(stream, circularBatchRead, write3D);
+    fk::executeOperations<fk::TransformDPP<>>(fk_stream, circularBatchRead, write3D);
 
     gpuErrchk(cudaMemcpyAsync(h_output.ptr().data, output.ptr().data, output.sizeInBytes(), cudaMemcpyDeviceToHost, stream));
     gpuErrchk(cudaStreamSynchronize(stream));
@@ -73,7 +76,7 @@ bool testCircularBatchRead() {
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
                 fk::Point p{ x, y, z };
-                uchar3 res = *fk::PtrAccessor<fk::_3D>::point(p, h_output.ptr());
+                uchar3 res = *fk::PtrAccessor<fk::ND::_3D>::point(p, h_output.ptr());
                 uchar newZ = (z + FIRST);
                 uchar3 gt  = newZ >= BATCH ? fk::make_set<uchar3>(newZ - BATCH) : fk::make_set<uchar3>(newZ);
                 correct &= res.x == gt.x;
@@ -99,19 +102,19 @@ bool testDivergentBatch() {
     constexpr uint VAL_SUM = 3;
 
     cudaStream_t stream;
-
     gpuErrchk(cudaStreamCreate(&stream));
+    fk::Stream fk_stream(stream);
 
     std::vector<fk::Ptr2D<uint>> h_inputAllocations;
     std::vector<fk::Ptr2D<uint>> inputAllocations;
-    std::array<fk::RawPtr<fk::_2D, uint>, BATCH> input;
+    std::array<fk::RawPtr<fk::ND::_2D, uint>, BATCH> input;
     fk::Tensor<uint> output;
     fk::Tensor<uint> h_output;
     fk::Tensor<uint> h_groundTruth;
 
     for (uint i = 0; i < BATCH; i++) {
         fk::Ptr2D<uint> h_temp(WIDTH, HEIGHT, 0, fk::MemType::HostPinned);
-        fk::setTo(i, h_temp);
+        fk::setTo(i, h_temp, fk_stream);
         h_inputAllocations.push_back(h_temp);
         fk::Ptr2D<uint> temp(WIDTH, HEIGHT);
         inputAllocations.push_back(temp);
@@ -131,24 +134,24 @@ bool testDivergentBatch() {
             for (int y = 0; y < HEIGHT; y++) {
                 for (int x = 0; x < HEIGHT; x++) {
                     const fk::Point p{x,y,z};
-                    *fk::PtrAccessor<fk::_3D>::point(p, h_groundTruth.ptr()) = VAL_SUM;
+                    *fk::PtrAccessor<fk::ND::_3D>::point(p, h_groundTruth.ptr()) = VAL_SUM;
                 }
             }
         } else {
             for (int y = 0; y < HEIGHT; y++) {
                 for (int x = 0; x < HEIGHT; x++) {
                     const fk::Point p{x, y, z};
-                    *fk::PtrAccessor<fk::_3D>::point(p, h_groundTruth.ptr()) = z;
+                    *fk::PtrAccessor<fk::ND::_3D>::point(p, h_groundTruth.ptr()) = z;
                 }
             }
         }
     }
 
-    auto opSeq1 = fk::buildOperationSequence(fk::Read<fk::PerThreadRead<fk::_2D, uint>> { input[0] },
+    auto opSeq1 = fk::buildOperationSequence(fk::Read<fk::PerThreadRead<fk::ND::_2D, uint>> { input[0] },
                                              fk::Binary<fk::Add<uint>> {VAL_SUM},
-                                             fk::Write<fk::PerThreadWrite<fk::_3D, uint>> { output.ptr() });
-    auto opSeq2 = fk::buildOperationSequence(fk::Read<fk::PerThreadRead<fk::_2D, uint>> { input[1] },
-                                             fk::Write<fk::PerThreadWrite<fk::_3D, uint>> { output.ptr() });
+                                             fk::Write<fk::PerThreadWrite<fk::ND::_3D, uint>> { output.ptr() });
+    auto opSeq2 = fk::buildOperationSequence(fk::Read<fk::PerThreadRead<fk::ND::_2D, uint>> { input[1] },
+                                             fk::Write<fk::PerThreadWrite<fk::ND::_3D, uint>> { output.ptr() });
 
     const dim3 block = dim3(std::min(static_cast<int>(inputAllocations[0].dims().width), 32),
                       std::min(static_cast<int>(inputAllocations[0].dims().height), 8));
@@ -163,8 +166,8 @@ bool testDivergentBatch() {
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
                 const fk::Point p{x, y, z};
-                const uint gt = *fk::PtrAccessor<fk::_3D>::point(p, h_groundTruth.ptr());
-                const uint res = *fk::PtrAccessor<fk::_3D>::point(p, h_output.ptr());
+                const uint gt = *fk::PtrAccessor<fk::ND::_3D>::point(p, h_groundTruth.ptr());
+                const uint res = *fk::PtrAccessor<fk::ND::_3D>::point(p, h_output.ptr());
                 correct &= gt == res;
             }
         }
@@ -196,7 +199,7 @@ bool testCircularTensor() {
 
     for (int i = 0; i < ITERS; i++) {
         fk::setTo(fk::make_<IT>(i + 1, i + 1, i + 1), input, stream);
-        myTensor.update(stream, fk::Read<fk::PerThreadRead<fk::_2D, IT>> {input.ptr()},
+        myTensor.update(stream, fk::Read<fk::PerThreadRead<fk::ND::_2D, IT>> {input.ptr()},
                                 fk::Unary<fk::SaturateCast<IT, OT>> {},
                                 fk::Write<fk::TensorSplit<OT>> {myTensor.ptr()});
         gpuErrchk(cudaStreamSynchronize(stream));
@@ -212,7 +215,7 @@ bool testCircularTensor() {
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
                 const fk::Point p{x, y, z};
-                const TensorOT res = *fk::PtrAccessor<fk::_3D>::point(p, h_myTensor.ptr());
+                const TensorOT res = *fk::PtrAccessor<fk::ND::_3D>::point(p, h_myTensor.ptr());
                 correct &= value == res;
             }
         }
@@ -267,7 +270,7 @@ bool testCircularTensorcvGS() {
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
                 const fk::Point p{x, y, z};
-                const TensorOT* workPlane = fk::PtrAccessor<fk::_3D>::point(p, h_myTensor.ptr());
+                const TensorOT* workPlane = fk::PtrAccessor<fk::ND::_3D>::point(p, h_myTensor.ptr());
                 const TensorOT resX = *workPlane;
                 correct &= value == resX;
                 const TensorOT resY = *(workPlane + plane_pixels);
@@ -327,7 +330,7 @@ bool testTransposedCircularTensorcvGS() {
     for (int cp = 0; cp < (int)dims.color_planes; cp++) {
         for (int y = 0; y < (int)dims.height; y++) {
             for (int z = 0; z < (int)BATCH; z++) {
-                const auto* plane = fk::PtrAccessor<fk::T3D>::cr_point(fk::Point(0, 0, z), h_myTensor.ptr())
+                const auto* plane = fk::PtrAccessor<fk::ND::T3D>::cr_point(fk::Point(0, 0, z), h_myTensor.ptr())
                     + (plane_pixels * dims.planes * cp);
                 for (int x = 0; x < (int)dims.width; x++) {
                     correct &= ITERS - z == plane[x + (y * dims.width)];
@@ -385,7 +388,7 @@ bool testTransposedOldestFirstCircularTensorcvGS() {
     for (int cp = 0; cp < (int)dims.color_planes; cp++) {
         for (int y = 0; y < (int)dims.height; y++) {
             for (int z = 0; z < (int)BATCH; z++) {
-                const auto* plane = fk::PtrAccessor<fk::T3D>::cr_point(fk::Point(0, 0, z), h_myTensor.ptr())
+                const auto* plane = fk::PtrAccessor<fk::ND::T3D>::cr_point(fk::Point(0, 0, z), h_myTensor.ptr())
                     + (plane_pixels * dims.planes * cp);
                 for (int x = 0; x < (int)dims.width; x++) {
                     correct &= ITERS - (BATCH - z - 1) == plane[x + (y * dims.width)];
@@ -443,7 +446,7 @@ bool testOldestFirstCircularTensorcvGS_noSplit() {
     for (int cp = 0; cp < (int)dims.color_planes; cp++) {
         for (int y = 0; y < (int)dims.height; y++) {
             for (int z = 0; z < (int)BATCH; z++) {
-                const float4* plane = fk::PtrAccessor<fk::_3D>::cr_point(fk::Point(0, 0, z), h_myTensor.ptr()) + (plane_pixels * dims.planes * cp);
+                const float4* plane = fk::PtrAccessor<fk::ND::_3D>::cr_point(fk::Point(0, 0, z), h_myTensor.ptr()) + (plane_pixels * dims.planes * cp);
                 for (int x = 0; x < (int)dims.width; x++) {
                     const float4 groundTruth = fk::make_set<float4>(ITERS - (BATCH - z - 1));
                     const float4 computedValue = plane[x + (y * dims.width)];

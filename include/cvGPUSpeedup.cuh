@@ -15,14 +15,16 @@
 
 #pragma once
 
+#include <array>
+
 #include <cvGPUSpeedupHelpers.cuh>
-#include <fused_kernel/fused_kernel.cuh>
-#include <fused_kernel/core/data/circular_tensor.cuh>
-#include <fused_kernel/algorithms/image_processing/resize.cuh>
-#include <fused_kernel/algorithms/image_processing/color_conversion.cuh>
-#include <fused_kernel/algorithms/image_processing/crop.cuh>
-#include <fused_kernel/algorithms/image_processing/border_reader.cuh>
-#include <fused_kernel/algorithms/image_processing/warping.cuh>
+#include <fused_kernel/fused_kernel.h>
+#include <fused_kernel/core/data/circular_tensor.h>
+#include <fused_kernel/algorithms/image_processing/resize.h>
+#include <fused_kernel/algorithms/image_processing/color_conversion.h>
+#include <fused_kernel/algorithms/image_processing/crop.h>
+#include <fused_kernel/algorithms/image_processing/border_reader.h>
+#include <fused_kernel/algorithms/image_processing/warping.h>
 
 #include <opencv2/core.hpp>
 #include <opencv2/core/cuda_stream_accessor.hpp>
@@ -38,12 +40,12 @@ inline constexpr fk::Ptr2D<T> gpuMat2Ptr2D(const cv::cuda::GpuMat& source) {
 }
 
 template <typename T>
-inline constexpr fk::RawPtr<fk::_2D, T> gpuMat2RawPtr2D(const cv::cuda::GpuMat& source) {
-    const fk::RawPtr<fk::_2D, T> temp{ (T*)source.data, {static_cast<uint>(source.cols), static_cast<uint>(source.rows), static_cast<uint>(source.step)} };
+inline constexpr fk::RawPtr<fk::ND::_2D, T> gpuMat2RawPtr2D(const cv::cuda::GpuMat& source) {
+    const fk::RawPtr<fk::ND::_2D, T> temp{ (T*)source.data, {static_cast<uint>(source.cols), static_cast<uint>(source.rows), static_cast<uint>(source.step)} };
     return temp;
 }
 
-template <typename T, int Batch>
+template <typename T, size_t Batch>
 inline constexpr std::array<fk::Ptr2D<T>, Batch> gpuMat2Ptr2D_arr(const std::array<cv::cuda::GpuMat, Batch>& source) {
     std::array<fk::Ptr2D<T>, Batch> temp;
     std::transform(source.begin(), source.end(), temp.begin(),
@@ -52,8 +54,8 @@ inline constexpr std::array<fk::Ptr2D<T>, Batch> gpuMat2Ptr2D_arr(const std::arr
 }
 
 template <typename T, size_t Batch>
-inline constexpr std::array<fk::RawPtr<fk::_2D, T>, Batch> gpuMat2RawPtr2D_arr(const std::array<cv::cuda::GpuMat, Batch>& source, const int& usedElems = Batch) {
-    std::array<fk::RawPtr<fk::_2D, T>, Batch> temp;
+inline constexpr std::array<fk::RawPtr<fk::ND::_2D, T>, Batch> gpuMat2RawPtr2D_arr(const std::array<cv::cuda::GpuMat, Batch>& source, const int& usedElems = Batch) {
+    std::array<fk::RawPtr<fk::ND::_2D, T>, Batch> temp;
     if (usedElems == Batch) {
         std::transform(source.begin(), source.end(), temp.begin(),
             [](const cv::cuda::GpuMat& i) { return gpuMat2RawPtr2D<T>(i); });
@@ -166,7 +168,7 @@ inline constexpr auto split(const std::vector<cv::cuda::GpuMat>& output) {
     for (auto& mat : output) {
         fk_output.push_back(gpuMat2Ptr2D<BASE_CUDA_T(O)>(mat));
     }
-    return fk::SplitWrite<fk::_2D, CUDA_T(O)>::build(fk_output);
+    return fk::SplitWrite<fk::ND::_2D, CUDA_T(O)>::build(fk_output);
 }
 
 template <int O, size_t N>
@@ -179,7 +181,7 @@ inline constexpr auto split(const std::array<std::vector<cv::cuda::GpuMat>, N>& 
         }
         fkOutput[i] = fk_output;
     }
-    return fk::SplitWrite<fk::_2D, CUDA_T(O)>::build(fkOutput);
+    return fk::SplitWrite<fk::ND::_2D, CUDA_T(O)>::build(fkOutput);
 }
 
 template <int O>
@@ -192,12 +194,12 @@ inline constexpr auto split(const cv::cuda::GpuMat& output, const cv::Size& plan
 }
 
 template <int O>
-inline constexpr auto split(const fk::RawPtr<fk::_3D, typename fk::VectorTraits<CUDA_T(O)>::base>& output) {
+inline constexpr auto split(const fk::RawPtr<fk::ND::_3D, typename fk::VectorTraits<CUDA_T(O)>::base>& output) {
     return fk::Write<fk::TensorSplit<CUDA_T(O)>> {output};
 }
 
 template <int O>
-inline constexpr auto splitT(const fk::RawPtr<fk::T3D, typename fk::VectorTraits<CUDA_T(O)>::base>& output) {
+inline constexpr auto splitT(const fk::RawPtr<fk::ND::T3D, typename fk::VectorTraits<CUDA_T(O)>::base>& output) {
     return fk::Write<fk::TensorTSplit<CUDA_T(O)>> {output};
 }
 
@@ -210,12 +212,12 @@ template <int T, int INTER_F>
 inline const auto resize(const cv::cuda::GpuMat& input, const cv::Size& dsize, double fx, double fy) {
     static_assert(isSupportedInterpolation<INTER_F>, "Interpolation type not supported yet.");
 
-    const fk::RawPtr<fk::_2D, CUDA_T(T)> fk_input = gpuMat2Ptr2D<CUDA_T(T)>(input);
+    const fk::RawPtr<fk::ND::_2D, CUDA_T(T)> fk_input = gpuMat2Ptr2D<CUDA_T(T)>(input);
     const fk::Size dSize{ dsize.width, dsize.height };
     return fk::Resize<(fk::InterpolationType)INTER_F>::build(fk_input, dSize, fx, fy);
 }
 
-template <int T, int INTER_F, int NPtr, AspectRatio AR_ = IGNORE_AR>
+template <int T, int INTER_F, size_t NPtr, AspectRatio AR_ = IGNORE_AR>
 inline const auto resize(const std::array<cv::cuda::GpuMat, NPtr>& input,
                          const cv::Size& dsize, const int& usedPlanes,
                          const cv::Scalar& backgroundValue_ = cvScalar_set<CV_MAKETYPE(CV_32F, CV_MAT_CN(T))>(0)) {
@@ -225,9 +227,9 @@ inline const auto resize(const std::array<cv::cuda::GpuMat, NPtr>& input,
     constexpr fk::InterpolationType IType = static_cast<fk::InterpolationType>(INTER_F);
 
     constexpr int defaultType = CV_MAKETYPE(CV_32F, CV_MAT_CN(T));
-    const std::array<fk::RawPtr<fk::_2D, CUDA_T(T)>, NPtr> fk_input{ gpuMat2RawPtr2D_arr<CUDA_T(T), NPtr>(input) };
+    const std::array<fk::RawPtr<fk::ND::_2D, CUDA_T(T)>, NPtr> fk_input{ gpuMat2RawPtr2D_arr<CUDA_T(T), NPtr>(input) };
 
-    using PixelReadOp = fk::PerThreadRead<fk::_2D, CUDA_T(T)>;
+    using PixelReadOp = fk::PerThreadRead<fk::ND::_2D, CUDA_T(T)>;
     using O = CUDA_T(defaultType);
     const O backgroundValue = cvScalar2CUDAV<defaultType>::get(backgroundValue_);
     
@@ -235,12 +237,12 @@ inline const auto resize(const std::array<cv::cuda::GpuMat, NPtr>& input,
     const auto sizeArr = fk::make_set_std_array<NPtr>(fk::Size(dsize.width, dsize.height));
     const auto backgroundArr = fk::make_set_std_array<NPtr>(backgroundValue);
     using Resize = fk::Resize<IType, AR, fk::Read<PixelReadOp>>;
-    if constexpr (AR != fk::IGNORE_AR) {
+    if constexpr (AR != fk::AspectRatio::IGNORE_AR) {
         const auto resizeDFs = Resize::build_batch(readOP, sizeArr, backgroundArr);
-        return fk::BatchRead<NPtr, fk::CONDITIONAL_WITH_DEFAULT>::build(resizeDFs, usedPlanes, backgroundValue);
+        return fk::BatchRead<fk::PlanePolicy::CONDITIONAL_WITH_DEFAULT>::build(resizeDFs, usedPlanes, backgroundValue);
     } else {
         const auto resizeDFs = Resize::build_batch(readOP, sizeArr);
-        return fk::BatchRead<NPtr, fk::CONDITIONAL_WITH_DEFAULT>::build(resizeDFs, usedPlanes, backgroundValue);
+        return fk::BatchRead<fk::PlanePolicy::CONDITIONAL_WITH_DEFAULT>::build(resizeDFs, usedPlanes, backgroundValue);
     }
 }
 
@@ -290,7 +292,7 @@ inline constexpr auto warp(const cv::cuda::GpuMat& input, const cv::Mat& transfo
     if (transform_matrix.type() != CV_64FC1) {
         throw std::runtime_error("Transform matrix type should be CV_64FC1.");
     }
-    const auto read = fk::PerThreadRead<fk::_2D, CUDA_T(InputType)>::build(fk::RawPtr<fk::_2D, CUDA_T(InputType)>{ (CUDA_T(InputType)*)input.data, { static_cast<uint>(input.cols), static_cast<uint>(input.rows), static_cast<uint>(input.step) } });
+    const auto read = fk::PerThreadRead<fk::ND::_2D, CUDA_T(InputType)>::build(fk::RawPtr<fk::ND::_2D, CUDA_T(InputType)>{ (CUDA_T(InputType)*)input.data, { static_cast<uint>(input.cols), static_cast<uint>(input.rows), static_cast<uint>(input.step) } });
     if constexpr (WT == fk::WarpType::Affine) {
         cv::Mat inverse_transform_matrix;
         cv::invertAffineTransform(transform_matrix, inverse_transform_matrix);
@@ -391,7 +393,7 @@ inline constexpr auto warp(const std::array<cv::cuda::GpuMat, BATCH>& inputs,
         }
     }
     const auto fk_inputs = gpuMat2RawPtr2D_arr<CUDA_T(InputType)>(inputs);
-    const auto readBatch = fk::PerThreadRead<fk::_2D, CUDA_T(InputType)>::build(fk_inputs);
+    const auto readBatch = fk::PerThreadRead<fk::ND::_2D, CUDA_T(InputType)>::build(fk_inputs);
 
     const auto fk_warpParams = internal::warp_batchParameters<WT>(transform_matrices, dstSize);
 
@@ -424,7 +426,7 @@ inline constexpr auto warp(const std::array<cv::cuda::GpuMat, BATCH>& inputs,
     constexpr int DEFAULT_TYPE = CV_MAKETYPE(CV_32F, CV_MAT_CN(InputType));
     using DefaultType = CUDA_T(DEFAULT_TYPE);
     const auto fk_defaultValue = defaultValue == cv::Scalar() ? fk::make_set<DefaultType>(0.f) : cvScalar2CUDAV<DEFAULT_TYPE>::get(defaultValue);
-    const auto readBatch = fk::PerThreadRead<fk::_2D, CUDA_T(InputType)>::build(fk_inputs);
+    const auto readBatch = fk::PerThreadRead<fk::ND::_2D, CUDA_T(InputType)>::build(fk_inputs);
 
     const auto fk_warpParams = internal::warp_batchParameters<WT>(transform_matrices, dstSize, usedPlanes);
 
@@ -448,23 +450,26 @@ inline constexpr auto crop(const BackIOp& backIOp, const std::array<cv::Rect2d, 
 
 template <int O>
 inline constexpr auto write(const cv::cuda::GpuMat& output) {
-    return fk::Write<fk::PerThreadWrite<fk::_2D, CUDA_T(O)>>{ gpuMat2Ptr2D<CUDA_T(O)>(output).ptr() };
+    return fk::Write<fk::PerThreadWrite<fk::ND::_2D, CUDA_T(O)>>{ gpuMat2Ptr2D<CUDA_T(O)>(output).ptr() };
 }
 
 template <int O>
 inline constexpr auto write(const cv::cuda::GpuMat& output, const cv::Size& plane) {
-    return fk::Write<fk::PerThreadWrite<fk::_3D, CUDA_T(O)>>{ gpuMat2Tensor<CUDA_T(O)>(output, plane, 1).ptr() };
+    return fk::Write<fk::PerThreadWrite<fk::ND::_3D, CUDA_T(O)>>{ gpuMat2Tensor<CUDA_T(O)>(output, plane, 1).ptr() };
 }
 
 template <typename T>
 inline constexpr auto write(const fk::Tensor<T>& output) {
-    return fk::WriteInstantiableOperation<fk::PerThreadWrite<fk::_3D, T>>{ output };
+    return fk::WriteInstantiableOperation<fk::PerThreadWrite<fk::ND::_3D, T>>{ output };
 }
 
 template <bool ENABLE_THREAD_FUSION, typename... IOpTypes>
 inline constexpr void executeOperations(const cv::cuda::Stream& stream, const IOpTypes&... instantiableOperations) {
     const cudaStream_t cu_stream = cv::cuda::StreamAccessor::getStream(stream);
-    fk::executeOperations<ENABLE_THREAD_FUSION>(cu_stream, instantiableOperations...);
+    fk::Stream fk_stream(cu_stream);
+
+    constexpr fk::TF TFOPT = ENABLE_THREAD_FUSION ? fk::TF::ENABLED : fk::TF::DISABLED;
+    fk::executeOperations<fk::TransformDPP<fk::defaultParArch, TFOPT>>(fk_stream, instantiableOperations...);
 }
 
 template <typename... IOpTypes>
@@ -476,8 +481,11 @@ template <bool ENABLE_THREAD_FUSION, typename... IOpTypes>
 inline constexpr void executeOperations(const cv::cuda::GpuMat& input, const cv::cuda::Stream& stream,
                                         const IOpTypes&... instantiableOperations) {
     const cudaStream_t cu_stream = cv::cuda::StreamAccessor::getStream(stream);
+    fk::Stream fk_stream(cu_stream);
+
     using InputType = fk::FirstInstantiableOperationInputType_t<IOpTypes...>;
-    fk::executeOperations<ENABLE_THREAD_FUSION>(gpuMat2Ptr2D<InputType>(input), cu_stream, instantiableOperations...);
+    constexpr fk::TF TFOPT = ENABLE_THREAD_FUSION ? fk::TF::ENABLED : fk::TF::DISABLED;
+    fk::executeOperations<fk::TransformDPP<fk::defaultParArch, TFOPT>>(gpuMat2Ptr2D<InputType>(input), fk_stream, instantiableOperations...);
 }
 
 template <typename... IOpTypes>
@@ -490,10 +498,13 @@ template <bool ENABLE_THREAD_FUSION, typename... IOpTypes>
 inline constexpr void executeOperations(const cv::cuda::GpuMat& input, cv::cuda::GpuMat& output,
                                         cv::cuda::Stream& stream, const IOpTypes&... instantiableOperations) {
     const cudaStream_t cu_stream = cv::cuda::StreamAccessor::getStream(stream);
+    fk::Stream fk_stream(cu_stream);
+
     using InputType = fk::FirstInstantiableOperationInputType_t<IOpTypes...>;
     using OutputType = fk::LastInstantiableOperationOutputType_t<IOpTypes...>;
-    fk::executeOperations<ENABLE_THREAD_FUSION>(gpuMat2Ptr2D<InputType>(input),
-                                                gpuMat2Ptr2D<OutputType>(output), cu_stream, instantiableOperations...);
+    constexpr fk::TF TFOPT = ENABLE_THREAD_FUSION ? fk::TF::ENABLED : fk::TF::DISABLED;
+    fk::executeOperations<fk::TransformDPP<fk::defaultParArch, TFOPT>>(gpuMat2Ptr2D<InputType>(input),
+                                                gpuMat2Ptr2D<OutputType>(output), fk_stream, instantiableOperations...);
 }
 
 template <typename... IOpTypes>
@@ -509,10 +520,13 @@ inline constexpr void executeOperations(const std::array<cv::cuda::GpuMat, Batch
                                         const cv::cuda::Stream& stream,
                                         const IOpTypes&... instantiableOperations) {
     const cudaStream_t cu_stream = cv::cuda::StreamAccessor::getStream(stream);
+    fk::Stream fk_stream(cu_stream);
+
     using InputType = fk::FirstInstantiableOperationInputType_t<IOpTypes...>;
-    fk::executeOperations<ENABLE_THREAD_FUSION>(gpuMat2Ptr2D_arr<InputType, Batch>(input),
+    constexpr fk::TF TFOPT = ENABLE_THREAD_FUSION ? fk::TF::ENABLED : fk::TF::DISABLED;
+    fk::executeOperations<fk::TransformDPP<fk::defaultParArch, TFOPT>>(gpuMat2Ptr2D_arr<InputType, Batch>(input),
                                                                   activeBatch, cvScalar2CUDAV_t<InputType>::get(defaultValue),
-                                                                  cu_stream, instantiableOperations...);
+                                                                  fk_stream, instantiableOperations...);
 }
 
 template <bool ENABLE_THREAD_FUSION, size_t Batch, typename... IOpTypes>
@@ -520,9 +534,11 @@ inline constexpr void executeOperations(const std::array<cv::cuda::GpuMat, Batch
                                         const cv::cuda::Stream& stream,
                                         const IOpTypes&... instantiableOperations) {
     const cudaStream_t cu_stream = cv::cuda::StreamAccessor::getStream(stream);
+    fk::Stream fk_stream(cu_stream);
     using InputType = fk::FirstInstantiableOperationInputType_t<IOpTypes...>;
-    fk::executeOperations<ENABLE_THREAD_FUSION>(gpuMat2Ptr2D_arr<InputType, Batch>(input),
-                                                                  cu_stream, instantiableOperations...);
+    constexpr fk::TF TFOPT = ENABLE_THREAD_FUSION ? fk::TF::ENABLED : fk::TF::DISABLED;
+    fk::executeOperations<fk::TransformDPP<fk::defaultParArch, TFOPT>>(gpuMat2Ptr2D_arr<InputType, Batch>(input),
+        fk_stream, instantiableOperations...);
 }
 
 template <size_t Batch, typename... IOpTypes>
@@ -547,12 +563,15 @@ inline constexpr void executeOperations(const std::array<cv::cuda::GpuMat, Batch
                                         const cv::cuda::Stream& stream,
                                         const IOpTypes&... instantiableOperations) {
     const cudaStream_t cu_stream = cv::cuda::StreamAccessor::getStream(stream);
+    fk::Stream fk_stream(cu_stream);
+
     using InputType = fk::FirstInstantiableOperationInputType_t<IOpTypes...>;
     using OutputType = fk::LastInstantiableOperationOutputType_t<IOpTypes...>;
-    fk::executeOperations<ENABLE_THREAD_FUSION>(gpuMat2Ptr2D_arr<InputType>(input),
+    constexpr fk::TF TFOPT = ENABLE_THREAD_FUSION ? fk::TF::ENABLED : fk::TF::DISABLED;
+    fk::executeOperations<fk::TransformDPP<fk::defaultParArch, TFOPT>>(gpuMat2Ptr2D_arr<InputType>(input),
                                                 activeBatch, cvScalar2CUDAV_t<InputType>::get(defaultValue),
                                                 gpuMat2Tensor<OutputType>(output, outputPlane, 1),
-                                                cu_stream, instantiableOperations...);
+                                                fk_stream, instantiableOperations...);
 }
 
 template <bool ENABLE_THREAD_FUSION, size_t Batch, typename... IOpTypes>
@@ -561,11 +580,14 @@ inline constexpr void executeOperations(const std::array<cv::cuda::GpuMat, Batch
                                         const cv::cuda::Stream& stream,
                                         const IOpTypes&... instantiableOperations) {
     const cudaStream_t cu_stream = cv::cuda::StreamAccessor::getStream(stream);
+    fk::Stream fk_stream(cu_stream);
+
     using InputType = fk::FirstInstantiableOperationInputType_t<IOpTypes...>;
     using OutputType = fk::LastInstantiableOperationOutputType_t<IOpTypes...>;
-    fk::executeOperations<ENABLE_THREAD_FUSION>(gpuMat2Ptr2D_arr<InputType>(input),
+    constexpr fk::TF TFOPT = ENABLE_THREAD_FUSION ? fk::TF::ENABLED : fk::TF::DISABLED;
+    fk::executeOperations<fk::TransformDPP<fk::defaultParArch, TFOPT>>(gpuMat2Ptr2D_arr<InputType>(input),
                                                 gpuMat2Tensor<OutputType>(output, outputPlane, 1),
-                                                cu_stream, instantiableOperations...);
+                                                fk_stream, instantiableOperations...);
 }
 
 template <size_t Batch, typename... IOpTypes>
@@ -611,14 +633,14 @@ public:
 
     template <typename... IOpTypes>
     inline constexpr void update(const cv::cuda::Stream& stream, const cv::cuda::GpuMat& input, const IOpTypes&... instantiableOperationInstances) {
-        const fk::Read<fk::PerThreadRead<fk::_2D, CUDA_T(I)>> readInstantiableOperation{
+        const fk::Read<fk::PerThreadRead<fk::ND::_2D, CUDA_T(I)>> readInstantiableOperation{
             {{(CUDA_T(I)*)input.data, { static_cast<uint>(input.cols), static_cast<uint>(input.rows), static_cast<uint>(input.step) }}}};
-        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>::update(cv::cuda::StreamAccessor::getStream(stream), readInstantiableOperation, instantiableOperationInstances...);
+        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>::update(fk::Stream(cv::cuda::StreamAccessor::getStream(stream)), readInstantiableOperation, instantiableOperationInstances...);
     }
 
     template <typename... IOpTypes>
     inline constexpr void update(const cv::cuda::Stream& stream, const IOpTypes&... instantiableOperationInstances) {
-        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>::update(cv::cuda::StreamAccessor::getStream(stream), instantiableOperationInstances...);
+        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>::update(fk::Stream(cv::cuda::StreamAccessor::getStream(stream)), instantiableOperationInstances...);
     }
 
     inline constexpr CUDA_T(O)* data() {

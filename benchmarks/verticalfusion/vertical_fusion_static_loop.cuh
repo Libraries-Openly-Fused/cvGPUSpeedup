@@ -16,7 +16,7 @@
 #define VERTICAL_FUSION_STATIC_LOOP_CUH
 
 #include <cvGPUSpeedup.cuh>
-#include <fused_kernel/algorithms/basic_ops/static_loop.cuh>
+#include <fused_kernel/algorithms/basic_ops/static_loop.h>
 
 template <int CV_TYPE_I, int CV_TYPE_O, int OPS_PER_ITER, size_t NumOps, typename DeviceFunction>
 struct VerticalFusion {

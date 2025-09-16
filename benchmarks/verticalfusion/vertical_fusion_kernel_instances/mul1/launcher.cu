@@ -16,7 +16,7 @@
 
 #include "tests/testsCommon.cuh"
 #include <cvGPUSpeedup.cuh>
-#include <fused_kernel/algorithms/basic_ops/static_loop.cuh>
+#include <fused_kernel/algorithms/basic_ops/static_loop.h>
 #include <opencv2/cudaimgproc.hpp>
 
 #ifdef ENABLE_BENCHMARK

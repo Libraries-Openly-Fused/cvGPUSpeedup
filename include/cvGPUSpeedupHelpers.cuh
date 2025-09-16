@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include <fused_kernel/core/execution_model/memory_operations.cuh>
+#include <fused_kernel/core/execution_model/memory_operations.h>
 #include <cv2cuda_types.cuh>
 
 #include <opencv2/core/cuda.hpp>
