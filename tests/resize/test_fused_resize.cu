@@ -29,6 +29,7 @@ void testComputeWhatYouSeePlusHorizontalFusion(char* buffer, const uint& NUM_ELE
 
     cudaStream_t stream;
     gpuErrchk(cudaStreamCreate(&stream));
+    fk::Stream fk_stream{stream};
 
     constexpr fk::Size down(1920, 1080);
     cv::Mat h_result(down.height, down.width, CV_8UC4);
@@ -50,19 +51,19 @@ void testComputeWhatYouSeePlusHorizontalFusion(char* buffer, const uint& NUM_ELE
         fk::Read<fk::ReadYUV<fk::PixelFormat::NV12>> read{ {d_nv12Image}};
         fk::Unary<fk::ConvertYUVToRGB<fk::PixelFormat::NV12, fk::ColorRange::Full, fk::ColorPrimitives::bt601, true>> cvtColor{};
         fk::Write<fk::PerThreadWrite<fk::ND::_2D, uchar4>> write{ d_rgbaImageBig.ptr() };
-        fk::executeOperations<fk::TransformDPP<>>(stream, read, cvtColor, write);
+        fk::executeOperations<fk::TransformDPP<>>(fk_stream, read, cvtColor, write);
 
         fk::Read<fk::PerThreadRead<fk::ND::_2D, uchar4>> read2{ {d_rgbaImageBig.ptr()}};
         fk::Unary<fk::VectorReorder<uchar4, 2, 1, 0, 3>> cvtColor2{};
         fk::Write<fk::PerThreadWrite<fk::ND::_2D, uchar4>> write2{ d_rgbaImageBig.ptr() };
-        fk::executeOperations<fk::TransformDPP<>>(stream, read2, cvtColor2, write2);
+        fk::executeOperations<fk::TransformDPP<>>(fk_stream, read2, cvtColor2, write2);
     }
 
     for (int i = 0; i < OUTPUTS; i++) {
         auto read3 = fk::Resize<fk::InterpolationType::INTER_LINEAR>::build(d_rgbaImageBig.ptr(), down, 0., 0.);
         fk::Unary<fk::SaturateCast<float4, uchar4>> convertTo3{};
         fk::Write<fk::PerThreadWrite<fk::ND::_2D, uchar4>> write3{ d_rgbaImage.ptr() };
-        fk::executeOperations<fk::TransformDPP<>>(stream, read3, convertTo3, write3);
+        fk::executeOperations<fk::TransformDPP<>>(fk_stream, read3, convertTo3, write3);
     }
 
     gpuErrchk(cudaMemcpy2DAsync(h_result.data, h_result.step,
@@ -102,7 +103,7 @@ void testComputeWhatYouSee(char* buffer, const uint& NUM_ELEMS_X, const uint& NU
 
     cudaStream_t stream;
     gpuErrchk(cudaStreamCreate(&stream));
-    const fk::Stream fk_stream{ stream };
+    fk::Stream fk_stream{ stream };
 
     constexpr fk::Size down(1920, 1080);
     cv::Mat h_result(down.height, down.width, CV_8UC4);

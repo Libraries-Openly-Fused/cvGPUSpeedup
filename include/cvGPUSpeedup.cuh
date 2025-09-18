@@ -232,17 +232,14 @@ inline const auto resize(const std::array<cv::cuda::GpuMat, NPtr>& input,
     using PixelReadOp = fk::PerThreadRead<fk::ND::_2D, CUDA_T(T)>;
     using O = CUDA_T(defaultType);
     const O backgroundValue = cvScalar2CUDAV<defaultType>::get(backgroundValue_);
-    
+
     const auto readOP = PixelReadOp::build_batch(fk_input);
     const auto sizeArr = fk::make_set_std_array<NPtr>(fk::Size(dsize.width, dsize.height));
     const auto backgroundArr = fk::make_set_std_array<NPtr>(backgroundValue);
-    using Resize = fk::Resize<IType, AR, fk::Read<PixelReadOp>>;
     if constexpr (AR != fk::AspectRatio::IGNORE_AR) {
-        const auto resizeDFs = Resize::build_batch(readOP, sizeArr, backgroundArr);
-        return fk::BatchRead<fk::PlanePolicy::CONDITIONAL_WITH_DEFAULT>::build(resizeDFs, usedPlanes, backgroundValue);
+        return fk::Resize<IType, AR>::build(readOP, sizeArr, backgroundArr);
     } else {
-        const auto resizeDFs = Resize::build_batch(readOP, sizeArr);
-        return fk::BatchRead<fk::PlanePolicy::CONDITIONAL_WITH_DEFAULT>::build(resizeDFs, usedPlanes, backgroundValue);
+        return fk::Resize<IType, AR>::build(readOP, sizeArr);
     }
 }
 
@@ -624,11 +621,11 @@ class CircularTensor : public fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH,
 public:
     inline constexpr CircularTensor() {};
 
-    inline constexpr CircularTensor(const uint& width_, const uint& height_, const int& deviceID_ = 0) :
-        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>(width_, height_, deviceID_) {};
+    inline constexpr CircularTensor(const uint& width_, const uint& height_, const fk::MemType& type_ = fk::defaultMemType, const int& deviceID_ = 0) :
+        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>(width_, height_, type_, deviceID_) {};
 
-    inline constexpr void Alloc(const uint& width_, const uint& height_, const int& deviceID_ = 0) {
-        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>::Alloc(width_, height_, deviceID_);
+    inline constexpr void Alloc(const uint& width_, const uint& height_, const fk::MemType& type_ = fk::defaultMemType, const int& deviceID_ = 0) {
+        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>::Alloc(width_, height_, type_, deviceID_);
     }
 
     template <typename... IOpTypes>
