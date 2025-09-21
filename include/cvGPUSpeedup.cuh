@@ -20,6 +20,7 @@
 #include <cvGPUSpeedupHelpers.cuh>
 #include <fused_kernel/fused_kernel.h>
 #include <fused_kernel/core/data/circular_tensor.h>
+#include <fused_kernel/algorithms/basic_ops/arithmetic.h>
 #include <fused_kernel/algorithms/image_processing/resize.h>
 #include <fused_kernel/algorithms/image_processing/color_conversion.h>
 #include <fused_kernel/algorithms/image_processing/crop.h>

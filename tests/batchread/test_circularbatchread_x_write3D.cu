@@ -16,7 +16,7 @@
 #include "tests/testsCommon.cuh"
 #include <fused_kernel/algorithms/basic_ops/arithmetic.h>
 #include <fused_kernel/core/utils/utils.h>
-#include <fused_kernel/core/utils/cuda_vector_utils.h>
+#include <fused_kernel/core/utils/vector_utils.h>
 #include <fused_kernel/fused_kernel.h>
 #include <fused_kernel/core/data/ptr_utils.h>
 #include <cvGPUSpeedup.cuh>

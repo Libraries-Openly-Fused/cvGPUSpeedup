@@ -19,7 +19,7 @@
 
 #include <fused_kernel/core/data/ptr_nd.h>
 #include <fused_kernel/core/utils/utils.h>
-#include <fused_kernel/core/utils/cuda_vector_utils.h>
+#include <fused_kernel/core/utils/vector_utils.h>
 
 template <int Depth> std::string depthToString() { return ""; }
 
