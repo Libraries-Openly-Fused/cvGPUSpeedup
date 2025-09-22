@@ -17,6 +17,7 @@
 
 #include "tests/testsCommon.cuh"
 #include <opencv2/opencv.hpp>
+#include <fused_kernel/algorithms/image_processing/raw_image.h>
 #include <cvGPUSpeedup.cuh>
 
 struct PerPlaneSequenceSelector {
@@ -38,11 +39,11 @@ void testComputeWhatYouSeePlusHorizontalFusion(char* buffer, const uint& NUM_ELE
     uchar* d_dataSource;
     size_t sourcePitch;
     gpuErrchk(cudaMallocPitch(&d_dataSource, &sourcePitch, NUM_ELEMS_X, NUM_ELEMS_Y + (NUM_ELEMS_Y / 2)));
-    fk::RawPtr<fk::ND::_2D, uchar> d_nv12Image{ d_dataSource, {NUM_ELEMS_X, NUM_ELEMS_Y, (uint)sourcePitch} };
+    fk::RawImage<fk::PixelFormat::NV12> d_nv12Image{ {d_dataSource, {NUM_ELEMS_X, NUM_ELEMS_Y + (NUM_ELEMS_Y / 2), (uint)sourcePitch}}, NUM_ELEMS_X, NUM_ELEMS_Y};
     fk::Ptr2D<uchar4> d_rgbaImage(down.width, down.height);
     fk::Ptr2D<uchar4> d_rgbaImageBig(NUM_ELEMS_X, NUM_ELEMS_Y);
 
-    gpuErrchk(cudaMemcpy2DAsync(d_nv12Image.data, d_nv12Image.dims.pitch,
+    gpuErrchk(cudaMemcpy2DAsync(d_nv12Image.data.data, d_nv12Image.data.dims.pitch,
         nv12Image.data, nv12Image.step,
         NUM_ELEMS_X, NUM_ELEMS_Y + (NUM_ELEMS_Y / 2), cudaMemcpyHostToDevice, stream));
     constexpr int CAMERAS = 4;
@@ -90,7 +91,9 @@ void testComputeWhatYouSeePlusHorizontalFusion(char* buffer, const uint& NUM_ELE
               (uint)ceil((float)down.height / (float)block.y),
               (uint)OUTPUTS);
 
-    fk::launchDivergentBatchTransformDPP_Kernel<fk::ParArch::GPU_NVIDIA, PerPlaneSequenceSelector><<<grid, block, 0, stream>>>(OpSeqTensor);
+    const typename fk::DivergentBatchTransformDPP<fk::ParArch::GPU_NVIDIA, PerPlaneSequenceSelector>::DPPDetails details{};
+
+    fk::launchDivergentBatchTransformDPP_Kernel<fk::ParArch::GPU_NVIDIA, PerPlaneSequenceSelector><<<grid, block, 0, stream>>>(details, OpSeqTensor);
    
     gpuErrchk(cudaStreamSynchronize(stream));
 
@@ -112,13 +115,13 @@ void testComputeWhatYouSee(char* buffer, const uint& NUM_ELEMS_X, const uint& NU
     uchar* d_dataSource;
     size_t sourcePitch;
     gpuErrchk(cudaMallocPitch(&d_dataSource, &sourcePitch, NUM_ELEMS_X, NUM_ELEMS_Y + (NUM_ELEMS_Y / 2)));
-    fk::RawPtr<fk::ND::_2D, uchar> d_nv12Image{ d_dataSource, {NUM_ELEMS_X, NUM_ELEMS_Y, (uint)sourcePitch} };
+    fk::RawImage<fk::PixelFormat::NV12> d_nv12Image{ {d_dataSource, { NUM_ELEMS_X, NUM_ELEMS_Y + (NUM_ELEMS_Y / 2), (uint)sourcePitch}}, NUM_ELEMS_X, NUM_ELEMS_Y };
     fk::Ptr2D<uchar4> d_rgbaImage(down.width, down.height);
     fk::Ptr2D<uchar4> d_rgbaImageBig(NUM_ELEMS_X, NUM_ELEMS_Y);
 
-    gpuErrchk(cudaMemcpy2DAsync(d_nv12Image.data, d_nv12Image.dims.pitch,
-        nv12Image.data, nv12Image.step,
-        NUM_ELEMS_X, NUM_ELEMS_Y + (NUM_ELEMS_Y / 2), cudaMemcpyHostToDevice, stream));
+    gpuErrchk(cudaMemcpy2DAsync(d_nv12Image.data.data, d_nv12Image.data.dims.pitch,
+                                nv12Image.data, nv12Image.step,
+                                NUM_ELEMS_X, NUM_ELEMS_Y + (NUM_ELEMS_Y / 2), cudaMemcpyHostToDevice, stream));
 
     fk::Read<fk::ReadYUV<fk::PixelFormat::NV12>> read{ d_nv12Image };
     fk::Unary<fk::ConvertYUVToRGB<fk::PixelFormat::NV12, fk::ColorRange::Full, fk::ColorPrimitives::bt601, true>> cvtColor{};

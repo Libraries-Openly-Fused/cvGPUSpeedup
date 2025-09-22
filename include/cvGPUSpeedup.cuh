@@ -36,7 +36,7 @@ enum AspectRatio { PRESERVE_AR = 0, IGNORE_AR = 1, PRESERVE_AR_RN_EVEN = 2, PRES
 
 template <typename T>
 inline constexpr fk::Ptr2D<T> gpuMat2Ptr2D(const cv::cuda::GpuMat& source) {
-    const fk::Ptr2D<T> temp(reinterpret_cast<T*>(source.data), source.cols, source.rows, (uint)source.step);
+    const fk::Ptr2D<T> temp(reinterpret_cast<T*>(source.data), source.cols, source.rows, (uint)source.step, fk::MemType::Device);
     return temp;
 }
 
@@ -69,7 +69,7 @@ inline constexpr std::array<fk::RawPtr<fk::ND::_2D, T>, Batch> gpuMat2RawPtr2D_a
 
 template <typename T>
 inline constexpr fk::Tensor<T> gpuMat2Tensor(const cv::cuda::GpuMat& source, const cv::Size& planeDims, const int& colorPlanes) {
-    const fk::Tensor<T> t_output((T*)source.data, planeDims.width, planeDims.height, source.rows, colorPlanes);
+    const fk::Tensor<T> t_output((T*)source.data, planeDims.width, planeDims.height, source.rows, colorPlanes, fk::MemType::Device);
     return t_output;
 }
 
