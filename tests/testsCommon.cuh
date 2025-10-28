@@ -64,6 +64,7 @@ template <int T>
 bool compareAndCheck(int NUM_ELEMS_X, int NUM_ELEMS_Y, cv::Mat& cvVersion, cv::Mat& cvGSVersion) {
     bool passed = true;
     cv::Mat diff = cv::abs(cvVersion - cvGSVersion);
+    cv::Mat diffAugment = diff * 128;
     std::vector<cv::Mat> h_comparison1C(CV_MAT_CN(T));
     cv::split(diff, h_comparison1C);
     #ifdef CVGS_DEBUG
