@@ -630,15 +630,15 @@ public:
     }
 
     template <typename... IOpTypes>
-    inline constexpr void update(const cv::cuda::Stream& stream, const cv::cuda::GpuMat& input, const IOpTypes&... instantiableOperationInstances) {
+    inline constexpr void update(cv::cuda::Stream& stream, const cv::cuda::GpuMat& input, const IOpTypes&... instantiableOperationInstances) {
         const fk::Read<fk::PerThreadRead<fk::ND::_2D, CUDA_T(I)>> readInstantiableOperation{
             {{(CUDA_T(I)*)input.data, { static_cast<uint>(input.cols), static_cast<uint>(input.rows), static_cast<uint>(input.step) }}}};
-        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>::update(fk::Stream(cv::cuda::StreamAccessor::getStream(stream)), readInstantiableOperation, instantiableOperationInstances...);
+        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>::update(fk::Stream_<fk::ParArch::GPU_NVIDIA>(cv::cuda::StreamAccessor::getStream(stream)), readInstantiableOperation, instantiableOperationInstances...);
     }
 
     template <typename... IOpTypes>
-    inline constexpr void update(const cv::cuda::Stream& stream, const IOpTypes&... instantiableOperationInstances) {
-        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>::update(fk::Stream(cv::cuda::StreamAccessor::getStream(stream)), instantiableOperationInstances...);
+    inline constexpr void update(cv::cuda::Stream& stream, const IOpTypes&... instantiableOperationInstances) {
+        fk::CircularTensor<CUDA_T(O), COLOR_PLANES, BATCH, CT_ORDER, CP_MODE>::update(fk::Stream_<fk::ParArch::GPU_NVIDIA>(cv::cuda::StreamAccessor::getStream(stream)), instantiableOperationInstances...);
     }
 
     inline constexpr CUDA_T(O)* data() {
