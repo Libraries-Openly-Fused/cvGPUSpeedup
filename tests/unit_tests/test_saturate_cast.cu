@@ -18,6 +18,7 @@
 #include <cvGPUSpeedup.cuh>
 #include <fused_kernel/core/utils/type_to_string.h>
 #include "opencv2/imgproc.hpp"
+#include <opencv2/core/cuda/vec_math.hpp>
 
 #include <iomanip>
 
@@ -145,9 +146,10 @@ bool test_cpuSaturateCast() {
     ok &= cpuSaturateCast<uchar>(36.999996185f);
     ok &= cpuSaturateCast<uchar>(127.999992371f);
 
+    // GPU tests
     fk::Stream stream;
-
     ok &= gpuSaturateCast<uchar3>(float3{ 1.999999881f, 36.999996185f, 127.999992371f }, stream);
+    ok &= gpuSaturateCast<uchar3>(float3{ 1.49f, 36.5f, 127.51f }, stream);
 
     constexpr float3 f3{ 1.999999881f, 36.999996185f, 127.999992371f };
     constexpr float3 result = cxp::nearbyint::f(f3);

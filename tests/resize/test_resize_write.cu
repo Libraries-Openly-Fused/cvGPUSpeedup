@@ -45,60 +45,40 @@ bool test_resize_write(int NUM_ELEMS_X, int NUM_ELEMS_Y, cv::cuda::Stream& cv_st
             cv::cuda::GpuMat d_input(NUM_ELEMS_Y, NUM_ELEMS_X, I, val_init);
 
             cv::Size up(3870, 2260); // x,y
-            //cv::Size down(300, 500); // x,y
+            cv::Size down(300, 500); // x,y
 
-            //cv::cuda::GpuMat d_down(down, I);
+            cv::cuda::GpuMat d_down(down, I);
             cv::cuda::GpuMat d_up(up, I);
 
-            //cv::cuda::GpuMat d_down_cvGS(down, I);
+            cv::cuda::GpuMat d_down_cvGS(down, I);
             cv::cuda::GpuMat d_up_cvGS(up, I);
 
             cv::cuda::GpuMat d_outputFloat(up, CV_32FC3);
 
             // Execute cvGS first to avoid OpenCV exceptions
             cvGS::executeOperations(cv_stream, cvGS::resize<I, cv::INTER_LINEAR>(d_input, up, 0., 0.),
-                                               cvGS::write<O>(d_outputFloat)
-                                               /*cvGS::convertTo<CV_MAKETYPE(CV_32F, CV_MAT_CN(I)), I>(),
-                                               cvGS::write<I>(d_up_cvGS)*/);
-            //cvGS::executeOperations(cv_stream, cvGS::resize<I, cv::INTER_LINEAR>(d_input, down, 0., 0.), cvGS::convertTo<CV_MAKETYPE(CV_32F, CV_MAT_CN(I)), I>(), cvGS::write<I>(d_down_cvGS));
+                                               cvGS::convertTo<CV_MAKETYPE(CV_32F, CV_MAT_CN(I)), I>(),
+                                               cvGS::write<I>(d_up_cvGS));
+            cvGS::executeOperations(cv_stream, cvGS::resize<I, cv::INTER_LINEAR>(d_input, down, 0., 0.), cvGS::convertTo<CV_MAKETYPE(CV_32F, CV_MAT_CN(I)), I>(), cvGS::write<I>(d_down_cvGS));
 
             cv::cuda::resize(d_input, d_up, up, 0., 0., cv::INTER_LINEAR, cv_stream);
-            //cv::cuda::resize(d_input, d_down, down, 0., 0., cv::INTER_LINEAR, cv_stream);
+            cv::cuda::resize(d_input, d_down, down, 0., 0., cv::INTER_LINEAR, cv_stream);
 
             cv::Mat h_up, h_up_cvGS;
-            //cv::Mat h_down, h_down_cvGS;
+            cv::Mat h_down, h_down_cvGS;
 
             d_up.download(h_up, cv_stream);
             d_up_cvGS.download(h_up_cvGS, cv_stream);
-            /*d_down.download(h_down, cv_stream);
-            d_down_cvGS.download(h_down_cvGS, cv_stream);*/
+            d_down.download(h_down, cv_stream);
+            d_down_cvGS.download(h_down_cvGS, cv_stream);
 
             cv::Mat h_outputFloat;
             d_outputFloat.download(h_outputFloat, cv_stream);
 
             cv_stream.waitForCompletion();
 
-            std::cout << std::fixed << std::setprecision(9);
-
-            cv::Mat mat = h_outputFloat;
-            for (int r = 0; r < mat.rows; ++r) {
-                // Get a pointer to the beginning of the row
-                cv::Vec3f* row_ptr = mat.ptr<cv::Vec3f>(r);
-
-                for (int c = 0; c < mat.cols; ++c) {
-                    // Get the pixel from the row pointer
-                    cv::Vec3f pixel = row_ptr[c];
-
-                    // Print the coordinate and the 3 float values
-                    std::cout << "Pixel (" << r << ", " << c << "): [";
-                    std::cout << pixel[0] << ", ";
-                    std::cout << pixel[1] << ", ";
-                    std::cout << pixel[2] << "]" << std::endl;
-                }
-            }
-
             passed &= compareAndCheck<I>(up.width, up.height, h_up, h_up_cvGS);
-            //passed &= compareAndCheck<I>(down.width, down.height, h_down, h_down_cvGS);
+            passed &= compareAndCheck<I>(down.width, down.height, h_down, h_down_cvGS);
 
         } catch (const cv::Exception& e) {
             if (e.code != -210) {
