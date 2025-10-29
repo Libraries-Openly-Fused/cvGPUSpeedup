@@ -53,8 +53,6 @@ bool test_resize_write(int NUM_ELEMS_X, int NUM_ELEMS_Y, cv::cuda::Stream& cv_st
             cv::cuda::GpuMat d_down_cvGS(down, I);
             cv::cuda::GpuMat d_up_cvGS(up, I);
 
-            cv::cuda::GpuMat d_outputFloat(up, CV_32FC3);
-
             // Execute cvGS first to avoid OpenCV exceptions
             cvGS::executeOperations(cv_stream, cvGS::resize<I, cv::INTER_LINEAR>(d_input, up, 0., 0.),
                                                cvGS::convertTo<CV_MAKETYPE(CV_32F, CV_MAT_CN(I)), I>(),
@@ -71,9 +69,6 @@ bool test_resize_write(int NUM_ELEMS_X, int NUM_ELEMS_Y, cv::cuda::Stream& cv_st
             d_up_cvGS.download(h_up_cvGS, cv_stream);
             d_down.download(h_down, cv_stream);
             d_down_cvGS.download(h_down_cvGS, cv_stream);
-
-            cv::Mat h_outputFloat;
-            d_outputFloat.download(h_outputFloat, cv_stream);
 
             cv_stream.waitForCompletion();
 
