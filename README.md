@@ -13,6 +13,7 @@ The FKL repository is used by cvGPUSpeedup as a mandatory submodule. The goal is
 Some git clients like git extensions or SourceTree already load the submodules, but in case you want to do it from the command line here ara the commands:
 ```bash
 git clone https://github.com/morousg/cvGPUSpeedup.git
+cd cvGPUSpeedup
 git submodule init
 git submodule update
 ``` 
