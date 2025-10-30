@@ -15,7 +15,7 @@
 #include "tests/main.h"
 
 #include <cvGPUSpeedup.cuh>
-#include <fused_kernel/algorithms/image_processing/border_reader.cuh>
+#include <fused_kernel/algorithms/image_processing/border_reader.h>
 #include <opencv2/opencv.hpp>
 #include "tests/testsCommon.cuh"
 
@@ -172,7 +172,7 @@ bool testPerspectiveBatch() {
     const auto warpFunc = cvGS::warp<fk::WarpType::Perspective, CV_8UC3, NUM_IMGS>(d_imgs, perspective_matrices, img.size());
 
     auto fk_outputs = cvGS::gpuMat2RawPtr2D_arr<uchar3>(d_resultscvGS);
-    auto writeFunc = fk::PerThreadWrite<fk::_2D, uchar3>::build(fk_outputs);
+    auto writeFunc = fk::PerThreadWrite<fk::ND::_2D, uchar3>::build(fk_outputs);
     cvGS::executeOperations(stream, warpFunc, fk::Cast<float3, uchar3>::build(), writeFunc);
 
     stream.waitForCompletion();
@@ -242,7 +242,7 @@ bool testPerspectiveBatchNotAll() {
     const auto warpFunc = cvGS::warp<fk::WarpType::Perspective, CV_8UC3>(d_imgs, perspective_matrices2, img.size(), usedPlanes, cv::Scalar());
 
     auto fk_outputs = cvGS::gpuMat2RawPtr2D_arr<uchar3>(d_resultscvGS);
-    auto writeFunc = fk::PerThreadWrite<fk::_2D, uchar3>::build(fk_outputs);
+    auto writeFunc = fk::PerThreadWrite<fk::ND::_2D, uchar3>::build(fk_outputs);
 
     cvGS::executeOperations(stream, warpFunc, fk::Cast<float3, uchar3>::build(), writeFunc);
 

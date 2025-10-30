@@ -17,7 +17,7 @@
 #include "tests/testsCommon.cuh"
 #include <cvGPUSpeedup.cuh>
 #include <opencv2/cudaimgproc.hpp>
-#include <fused_kernel/algorithms/basic_ops/static_loop.cuh>
+#include <fused_kernel/algorithms/basic_ops/static_loop.h>
 
 #ifdef ENABLE_BENCHMARK
 
@@ -56,19 +56,19 @@ struct VerticalFusionMAD {
         const uint inputWidth = static_cast<uint>(cvInput.cols);
         const uint outputWidth = static_cast<uint>(d_output.cols);
 
-        const fk::RawPtr<fk::_1D, InputType> fkInput{ reinterpret_cast<InputType*>(cvInput.data), { inputWidth, static_cast<uint>(inputWidth * sizeof(InputType)) }};
-        const auto readOp = fk::PerThreadRead<fk::_1D, InputType>::build(fkInput);
+        const fk::RawPtr<fk::ND::_1D, InputType> fkInput{ reinterpret_cast<InputType*>(cvInput.data), { inputWidth, static_cast<uint>(inputWidth * sizeof(InputType)) }};
+        const auto readOp = fk::PerThreadRead<fk::ND::_1D, InputType>::build(fkInput);
 
-        const fk::RawPtr<fk::_1D, OutputType> fkOutput{ reinterpret_cast<OutputType*>(d_output.data), { outputWidth, static_cast<uint>(outputWidth * sizeof(OutputType)) } };
-        const auto writeOp = fk::PerThreadWrite<fk::_1D, OutputType>::build(fkOutput);
+        const fk::RawPtr<fk::ND::_1D, OutputType> fkOutput{ reinterpret_cast<OutputType*>(d_output.data), { outputWidth, static_cast<uint>(outputWidth * sizeof(OutputType)) } };
+        const auto writeOp = fk::PerThreadWrite<fk::ND::_1D, OutputType>::build(fkOutput);
 
         constexpr bool THREAD_FUSION = false;
-        const auto tDetails = fk::TransformDPP<fk::ParArch::GPU_NVIDIA, void>::build_details<THREAD_FUSION>(readOp, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>(), loop, writeOp);
+        const auto tDetails = fk::TransformDPP<fk::ParArch::GPU_NVIDIA>::build_details<THREAD_FUSION>(readOp, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>(), loop, writeOp);
 
         const dim3 block(256);
         const dim3 grid(ceil(inputWidth / static_cast<float>(block.x)));
         const cudaStream_t stream = cv::cuda::StreamAccessor::getStream(cv_stream);
-        fk::launchTransformDPP_Kernel<fk::ParArch::GPU_NVIDIA, true><<<grid, block, 0, stream>>>(tDetails, readOp, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>(), loop, writeOp);
+        fk::launchTransformDPP_Kernel<fk::ParArch::GPU_NVIDIA, fk::TF::ENABLED><<<grid, block, 0, stream>>>(tDetails, readOp, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>(), loop, writeOp);
         gpuErrchk(cudaGetLastError());
     }
 };

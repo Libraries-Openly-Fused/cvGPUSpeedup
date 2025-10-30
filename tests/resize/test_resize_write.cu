@@ -17,6 +17,8 @@
 #include "tests/testsCommon.cuh"
 #include <cvGPUSpeedup.cuh>
 
+#include <iomanip>
+
 template <int I, int O>
 bool test_resize_write(int NUM_ELEMS_X, int NUM_ELEMS_Y, cv::cuda::Stream& cv_stream, bool enabled) {
     std::stringstream error_s;
@@ -52,7 +54,9 @@ bool test_resize_write(int NUM_ELEMS_X, int NUM_ELEMS_Y, cv::cuda::Stream& cv_st
             cv::cuda::GpuMat d_up_cvGS(up, I);
 
             // Execute cvGS first to avoid OpenCV exceptions
-            cvGS::executeOperations(cv_stream, cvGS::resize<I, cv::INTER_LINEAR>(d_input, up, 0., 0.), cvGS::convertTo<CV_MAKETYPE(CV_32F,CV_MAT_CN(I)), I>(), cvGS::write<I>(d_up_cvGS));
+            cvGS::executeOperations(cv_stream, cvGS::resize<I, cv::INTER_LINEAR>(d_input, up, 0., 0.),
+                                               cvGS::convertTo<CV_MAKETYPE(CV_32F, CV_MAT_CN(I)), I>(),
+                                               cvGS::write<I>(d_up_cvGS));
             cvGS::executeOperations(cv_stream, cvGS::resize<I, cv::INTER_LINEAR>(d_input, down, 0., 0.), cvGS::convertTo<CV_MAKETYPE(CV_32F, CV_MAT_CN(I)), I>(), cvGS::write<I>(d_down_cvGS));
 
             cv::cuda::resize(d_input, d_up, up, 0., 0., cv::INTER_LINEAR, cv_stream);
