@@ -238,9 +238,9 @@ inline const auto resize(const std::array<cv::cuda::GpuMat, NPtr>& input,
     const auto sizeArr = fk::make_set_std_array<NPtr>(fk::Size(dsize.width, dsize.height));
     const auto backgroundArr = fk::make_set_std_array<NPtr>(backgroundValue);
     if constexpr (AR != fk::AspectRatio::IGNORE_AR) {
-        return fk::Resize<IType, AR>::build(readOP, sizeArr, backgroundArr);
+        return fk::Resize<IType, AR>::build(usedPlanes, backgroundValue, readOP, sizeArr, backgroundArr);
     } else {
-        return fk::Resize<IType, AR>::build(readOP, sizeArr);
+        return fk::Resize<IType, AR>::build(usedPlanes, backgroundValue, readOP, sizeArr);
     }
 }
 
