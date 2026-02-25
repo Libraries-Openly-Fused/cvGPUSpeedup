@@ -92,7 +92,7 @@ void print2D(const std::string &message, const fk::Ptr2D<T> &d_input, const cuda
   std::cout << message << std::endl;
   for (int y = 0; y < d_input.dims().height; y++) {
     for (int x = 0; x < d_input.dims().width; x++) {
-      const T value = *fk::PtrAccessor<fk::ND::_2D>::cr_point(fk::Point(x, y), h_input.ptr());
+      const T value = *fk::PtrAccessor<fk::ND::_2D>::cr_point(fk::Point{x, y, 0}, h_input.ptr());
       printV(value);
       std::cout << ",";
     }
@@ -110,7 +110,7 @@ template <typename T> void printTensor(const fk::Tensor<T> &tensor) {
   for (int z = 0; z < dims.planes; z++) {
     for (int y = 0; y < dims.height; y++) {
       for (int cp = 0; cp < dims.color_planes; cp++) {
-        const T *plane = fk::PtrAccessor<fk::ND::_3D>::cr_point(fk::Point(0, 0, z), tensor.ptr()) + (plane_pixels * cp);
+        const T *plane = fk::PtrAccessor<fk::ND::_3D>::cr_point(fk::Point{0, 0, z}, tensor.ptr()) + (plane_pixels * cp);
 
         for (int x = 0; x < dims.width; x++) {
           ss << plane[x + (y * dims.width)] << " ";
@@ -134,7 +134,7 @@ template <typename T> void printTensor(const fk::TensorT<T> &tensor) {
     for (int y = 0; y < dims.height; y++) {
       for (int z = 0; z < dims.planes; z++) {
         const T *plane =
-            fk::PtrAccessor<fk::ND::T3D>::cr_point(fk::Point(0, 0, z), tensor.ptr()) + (plane_pixels * dims.planes * cp);
+            fk::PtrAccessor<fk::ND::T3D>::cr_point(fk::Point{0, 0, z}, tensor.ptr()) + (plane_pixels * dims.planes * cp);
         for (int x = 0; x < dims.width; x++) {
           ss << plane[x + (y * dims.width)] << " ";
         }

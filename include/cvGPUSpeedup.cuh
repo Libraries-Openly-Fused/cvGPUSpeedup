@@ -127,7 +127,7 @@ inline constexpr auto convertTo(float alpha, float beta) {
         using SecondOp = fk::Mul<CUDA_T(O)>;
         using ThirdOp = fk::Add<CUDA_T(O)>;
 
-        return fk::FusedOperation<FirstOp, SecondOp, ThirdOp>::build({ { { alphaVec, { betaVec } } } });
+        return FirstOp::build().then(SecondOp::build(alphaVec)).then(ThirdOp::build(betaVec));
     }
 }
 
