@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:         
       #host compiler, version, cuda compiler, cuda version,
-      #disabling ,"llvm,21.1.0,llvm,12.1", not working on windows yet
+     
         toolset: ["cl,14.44,nvcc,12.9"]
  
 
@@ -39,22 +39,20 @@ jobs:
         $y = "${{matrix.toolset}}".split(",")
         if  ($y[0].contains("llvm"))  {
             $env:CC="D:\clang+llvm-"+$y[1]+"-x86_64-pc-windows-msvc\bin\clang-cl.exe"
-            $env:CXX="D:\clang+llvm-"+$y[1]+"-x86_64-pc-windows-msvc\bin\clang-cl.exe"
-            $devargs='-arch=x64'       
+            $env:CXX="D:\clang+llvm-"+$y[1]+"-x86_64-pc-windows-msvc\bin\clang-cl.exe"                   
         }  else {
             $env:CC="cl.exe"
-            $env:CXX="cl.exe"
-            $devargs='-arch=x64 -vcvars_ver='+$y[1]     
-        }
-        
+            $env:CXX="cl.exe" 
+        }        
         if  ($y[2].contains("llvm")) {
             #we only support clang with gnu frontend for cuda
             $env:CC="D:\clang+llvm-"+$y[1]+"-x86_64-pc-windows-msvc\bin\clang++.exe"
             $env:CXX=$env:CC
-            $env:CUDACXX=$env:CC
+            $env:CUDACXX=$env:CC 
         }  else {
             $env:CUDACXX="${env:ProgramFiles}\NVIDIA GPU Computing Toolkit\CUDA\v$($y[3])\bin\nvcc.exe"
         }
+        $devargs='-arch=x64  -vcvars_ver=14.44' 
         Import-Module (Get-ChildItem $vsInstallationPath -Recurse -File -Filter Microsoft.VisualStudio.DevShell.dll).FullName           
         Enter-VsDevShell -VsInstallPath $vsInstallationPath -SkipAutomaticLocation -DevCmdArguments $devargs      
         cmake -G "Ninja" -B ${{steps.strings.outputs.build-output-dir}}  -DOpenCV_DIR="D:\bin\opencv-4.12.0.cuda$($y[3])" -DCMAKE_BUILD_TYPE=Release  -S  ${{github.workspace}}
