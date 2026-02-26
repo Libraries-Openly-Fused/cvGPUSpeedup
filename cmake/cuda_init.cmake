@@ -1,5 +1,10 @@
 cmake_policy(SET CMP0104 NEW) # Initialize CMAKE_CUDA_ARCHITECTURES when CMAKE_CUDA_COMPILER_ID is NVIDIA
 
+enable_language(CUDA)   
+
+include (cmake/libs/cuda/cuda.cmake) 
+include (cmake/libs/cuda/archs.cmake)
+
 if(UNIX)
     return()
 endif()
