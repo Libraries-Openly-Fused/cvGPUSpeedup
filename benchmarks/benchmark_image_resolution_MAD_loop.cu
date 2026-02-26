@@ -20,19 +20,12 @@
 #include <fused_kernel/algorithms/basic_ops/static_loop.h>
 
 #ifdef ENABLE_BENCHMARK
-
 constexpr char VARIABLE_DIMENSION[]{ "Number of pixels per side" };
-#ifndef CUDART_MAJOR_VERSION
-#error CUDART_MAJOR_VERSION Undefined!
-#elif (CUDART_MAJOR_VERSION == 11)
-constexpr size_t NUM_EXPERIMENTS = 10;
-constexpr size_t FIRST_VALUE = 10;
-constexpr size_t INCREMENT = 100;
-#elif (CUDART_MAJOR_VERSION == 12)
+
 constexpr size_t NUM_EXPERIMENTS = 60;
 constexpr size_t FIRST_VALUE = 100;
 constexpr size_t INCREMENT = 282270;
-#endif // CUDART_MAJOR_VERSION
+
 constexpr std::array<size_t, NUM_EXPERIMENTS> batchValues = arrayIndexSecuence<FIRST_VALUE, INCREMENT, NUM_EXPERIMENTS>;
 
 template <int CV_TYPE_I, int CV_TYPE_O>
@@ -44,11 +37,11 @@ struct VerticalFusionMAD {
                                const cv::cuda::GpuMat& d_output) {
         using InputType = CUDA_T(CV_TYPE_I);
         using OutputType = CUDA_T(CV_TYPE_O);
-        using Loop = fk::Binary<fk::StaticLoop<fk::FusedOperation<fk::Mul<OutputType>, fk::Add<OutputType>>, 200/2>>;
+        using Loop = fk::Binary<fk::StaticLoop<fk::FusedOperation<fk::Binary<fk::Mul<OutputType>>, fk::Binary<fk::Add<OutputType>>>, 200/2>>;
 
         Loop loop;
-        fk::get<0>(loop.params).params = cvGS::cvScalar2CUDAV<CV_TYPE_O>::get(val_mul);
-        fk::get<1>(loop.params).params = cvGS::cvScalar2CUDAV<CV_TYPE_O>::get(val_add);
+        fk::get_opt<0>(loop.params).params = cvGS::cvScalar2CUDAV<CV_TYPE_O>::get(val_mul);
+        fk::get_opt<1>(loop.params).params = cvGS::cvScalar2CUDAV<CV_TYPE_O>::get(val_add);
 
         if (cvInput.rows > 1) {
             throw std::runtime_error("VerticalFusionMAD only supports 1D input data.");
@@ -62,13 +55,12 @@ struct VerticalFusionMAD {
         const fk::RawPtr<fk::ND::_1D, OutputType> fkOutput{ reinterpret_cast<OutputType*>(d_output.data), { outputWidth, static_cast<uint>(outputWidth * sizeof(OutputType)) } };
         const auto writeOp = fk::PerThreadWrite<fk::ND::_1D, OutputType>::build(fkOutput);
 
-        constexpr bool THREAD_FUSION = false;
-        const auto tDetails = fk::TransformDPP<fk::ParArch::GPU_NVIDIA>::build_details<THREAD_FUSION>(readOp, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>(), loop, writeOp);
+        const auto tDetails = fk::TransformDPP<fk::ParArch::GPU_NVIDIA, fk::TF::DISABLED>::build_details(readOp, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>(), loop, writeOp);
 
         const dim3 block(256);
         const dim3 grid(ceil(inputWidth / static_cast<float>(block.x)));
         const cudaStream_t stream = cv::cuda::StreamAccessor::getStream(cv_stream);
-        fk::launchTransformDPP_Kernel<fk::ParArch::GPU_NVIDIA, fk::TF::ENABLED><<<grid, block, 0, stream>>>(tDetails, readOp, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>(), loop, writeOp);
+        fk::launchTransformDPP_Kernel<fk::ParArch::GPU_NVIDIA, fk::TF::DISABLED, true><<<grid, block, 0, stream>>>(tDetails, readOp, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>(), loop, writeOp);
         gpuErrchk(cudaGetLastError());
     }
 };
