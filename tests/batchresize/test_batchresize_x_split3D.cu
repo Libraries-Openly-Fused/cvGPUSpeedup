@@ -29,9 +29,9 @@ constexpr char VARIABLE_DIMENSION[]{ "Batch size" };
 #error CUDART_MAJOR_VERSION Undefined!
 #elif (CUDART_MAJOR_VERSION == 11)
 constexpr size_t NUM_EXPERIMENTS = 8;
-#elif (CUDART_MAJOR_VERSION == 12 && BENCHMARK_ENABLED)
+#elif (CUDART_MAJOR_VERSION >= 12 && BENCHMARK_ENABLED)
 constexpr size_t NUM_EXPERIMENTS = 30;
-#elif (CUDART_MAJOR_VERSION == 12)
+#elif (CUDART_MAJOR_VERSION >= 12)
 constexpr size_t NUM_EXPERIMENTS = 5;
 #endif // CUDART_MAJOR_VERSION
 
