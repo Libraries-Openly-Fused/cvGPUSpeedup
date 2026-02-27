@@ -16,7 +16,8 @@ jobs:
       fail-fast: false
 
       matrix:         #host,cuda,cuda_version
-        cpp_compiler: ["g++,nvcc,12.9","clang++,nvcc,12.9"]   
+        cpp_compiler: ["g++,nvcc,12.9, opencv-4.12.0","clang++,nvcc,12.9,opencv-4.12.0","g++,nvcc,13.0,opencv-4.13.0","clang++,nvcc,13.0,opencv-4.13.0"]   
+        
         
     steps:    
     - uses: actions/checkout@v4
@@ -38,7 +39,7 @@ jobs:
         else
             export CUDACXX="${cpp_compiler[1]}"
         fi
-        cmake -G "Ninja" -B ${{steps.strings.outputs.build-output-dir}} -DCMAKE_CXX_COMPILER="${cpp_compiler[0]}" -DCMAKE_CUDA_COMPILER=${CUDACXX} -DCUDAToolkit_ROOT="/usr/local/cuda-${cpp_compiler[2]}" -DCMAKE_BUILD_TYPE="Release" -S ${{github.workspace}}       
+        cmake -G "Ninja" -B ${{steps.strings.outputs.build-output-dir}} -DCMAKE_CXX_COMPILER="${cpp_compiler[0]}" -DCMAKE_CUDA_COMPILER=${CUDACXX} -DCUDAToolkit_ROOT="/usr/local/cuda-${cpp_compiler[2]}"   -DOPENCV_DIR="/usr/local/${cpp_compiler[3]}" -DCMAKE_BUILD_TYPE="Release" -S ${{github.workspace}}       
  
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).      

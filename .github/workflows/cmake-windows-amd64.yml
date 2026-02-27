@@ -16,7 +16,7 @@ jobs:
       matrix:         
       #host compiler, version, cuda compiler, cuda version,
      
-        toolset: ["cl,14.44,nvcc,12.9"]
+        toolset: ["cl,14.44,nvcc,12.9,opencv-4.12.0.cuda12.9","cl,14.44,nvcc,13.0,opencv-4.13.0.cuda13.0"]
  
 
     steps:
@@ -44,17 +44,16 @@ jobs:
             $env:CC="cl.exe"
             $env:CXX="cl.exe" 
         }   
-            
-        
+                    
         $env:CUDACXX="${env:ProgramFiles}\NVIDIA GPU Computing Toolkit\CUDA\v$($y[3])\bin\nvcc.exe"
         $devargs='-arch=x64 -vcvars_ver=14.44' 
         Import-Module (Get-ChildItem $vsInstallationPath -Recurse -File -Filter Microsoft.VisualStudio.DevShell.dll).FullName           
-        Enter-VsDevShell -VsInstallPath $vsInstallationPath -SkipAutomaticLocation -DevCmdArguments $devargs      
-        cmake -T="v143,cuda=$y[3]"  -B ${{steps.strings.outputs.build-output-dir}}    -DOpenCV_DIR="D:\bin\opencv-4.12.0.cuda$($y[3])" -DCMAKE_BUILD_TYPE=Release  -S  ${{github.workspace}}
+        Enter-VsDevShell -VsInstallPath $vsInstallationPath -SkipAutomaticLocation -DevCmdArguments $devargs               
+        cmake -G "Ninja" -B ${{steps.strings.outputs.build-output-dir}}  -DCMAKE_CUDA_COMPILER="$env:CUDACXX" -DOpenCV_DIR="D:\bin\$($y[4])" -DCMAKE_BUILD_TYPE=Release  -S  ${{github.workspace}}
         
         #worksaround for rules.ninja generating empty path
         if  ($y[2].contains("nvcc"))  {
-        (Get-Content ${{steps.strings.outputs.build-output-dir}}\CMakeFiles\rules.ninja) -replace "\\nvcc\\bin\\nvcc.exe", "$env:CUDACXX" | Set-Content ${{steps.strings.outputs.build-output-dir}}\CMakeFiles\rules.ninja
+         (Get-Content ${{steps.strings.outputs.build-output-dir}}\CMakeFiles\rules.ninja) -replace "\\nvcc\\bin\\nvcc.exe", "$env:CUDACXX" | Set-Content ${{steps.strings.outputs.build-output-dir}}\CMakeFiles\rules.ninja
         }
     - name: Build  
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).      
@@ -70,6 +69,7 @@ jobs:
             }
             Enter-VsDevShell -VsInstallPath $vsInstallationPath -SkipAutomaticLocation -DevCmdArguments $devargs            
             cmake --build ${{ steps.strings.outputs.build-output-dir }} --config Release 
+            
           
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}

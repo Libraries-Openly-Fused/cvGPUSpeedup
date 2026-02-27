@@ -4,20 +4,13 @@ set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 24)
 set (PROJECT_VERSION_REV 0)
 set (PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_REV})
-
+ 
 project(cvGPUSpeedup VERSION ${PROJECT_VERSION} LANGUAGES CXX CUDA 
 DESCRIPTION "Make OpenCV-CUDA code run faster on the GPU" HOMEPAGE_URL "https://github.com/morousg/cvGPUSpeedup" )
 
 include (cmake/cmake_init.cmake)
-include(CheckLanguage)
-check_language(CUDA)
-if (CMAKE_CUDA_COMPILER) 
-    message(STATUS CMAKE_CUDA_COMPILER ${CMAKE_CUDA_COMPILER})
-    message(STATUS "CUDA compiler  found.")      
-        include(cmake/cuda_init.cmake)    
-else()
-    message(ERROR "CUDA compiler not found, CUDA support will be disabled.")     
-endif()
+include(cmake/cuda_init.cmake)    
+ 
 
 include (cmake/doxygen.cmake)
 include (cmake/targets/virtualfolders.cmake)
