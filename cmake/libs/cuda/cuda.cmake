@@ -20,7 +20,6 @@ set(CUDA_TOOLKIT_ROOT_DIR_ORIG ${CUDAToolkit_LIBRARY_ROOT})
 # file(TO_CMAKE_PATH $ENV{APIS_PATH_VS2017} APIS_PATH)
 string(REPLACE "\\" "/" CUDA_TOOLKIT_ROOT_DIR_ORIG ${CUDA_TOOLKIT_ROOT_DIR_ORIG})
 set(CUDA_TOOLKIT_ROOT_DIR ${CUDA_TOOLKIT_ROOT_DIR_ORIG})
-message(STATUS )
 option(ENABLE_LINE_INFO "Enable line info for kernels compilation" ON)
 # Get the name from the current JSON element.
 get_cuda_component_version("cuda" CUDA_VERSION_FROM_VERSION_FILE)
