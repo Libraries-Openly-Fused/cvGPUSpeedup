@@ -1,4 +1,8 @@
-list(APPEND CMAKE_PREFIX_PATH "${OPENCV_DIR}")
+if(DEFINED OpenCV_DIR)
+    list(APPEND CMAKE_PREFIX_PATH "${OpenCV_DIR}")
+elseif(DEFINED OPENCV_DIR)
+    list(APPEND CMAKE_PREFIX_PATH "${OPENCV_DIR}")
+endif()
 find_package(OpenCV ${OPENCV_VERSION} CONFIG REQUIRED)
 
 function(add_opencv_to_target TARGET_NAME COMPONENTS)
