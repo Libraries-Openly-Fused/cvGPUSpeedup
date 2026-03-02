@@ -14,7 +14,7 @@ jobs:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
       matrix:
-        #host compiler, version, cuda c ompiler, cuda version,
+        #host compiler, version, cuda compiler, cuda version,
         include:
           - host_compiler: "cl.exe"
             msvc_env_version: "14.44"
