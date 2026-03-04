@@ -106,7 +106,7 @@ bool test_cvGS_VS_fk_CPU_and_GPU(cv::cuda::Stream& cv_stream, bool enabled) {
             const float3 fk_val_div = cvGS::cvScalar2CUDAV<CV_32FC3>::get(val_div);
             const float3 fk_defaultBackground = cvGS::cvScalar2CUDAV<CV_32FC3>::get(val_init_output);
 
-            constexpr fk::AspectRatio AR{ fk::PRESERVE_AR };
+            constexpr fk::AspectRatio AR{ fk::AspectRatio::PRESERVE_AR };
             constexpr fk::InterpolationType IType{ fk::InterpolationType::INTER_LINEAR };
 
             using PixelReadOp = fk::PerThreadRead<fk::ND::_2D, uchar3>;
@@ -123,16 +123,11 @@ bool test_cvGS_VS_fk_CPU_and_GPU(cv::cuda::Stream& cv_stream, bool enabled) {
             const auto cpu_start1 = std::chrono::steady_clock::now();
             PUSH_RANGE("Launching fk")
 
-            const auto readOP = PixelReadOp::build_batch(fk_crops);
-            const auto sizeArr = fk::make_set_std_array<BATCH>(fk_size);
-            const auto backgroundArr = fk::make_set_std_array<BATCH>(backgroundValue);
-            using Resize = fk::Resize<IType, AR, fk::Read<PixelReadOp>>;
-            const auto resizeDFs = Resize::build_batch(readOP, sizeArr, backgroundArr);
-            const auto resizeOp = fk::BatchRead<BATCH, fk::AspectRatio::CONDITIONAL_WITH_DEFAULT>::build(resizeDFs, BATCH, backgroundValue);
+            const auto resizeOp = PixelReadOp::build(fk_crops).then(fk::Resize<IType, AR>::build(fk_size, backgroundValue));
 
-            fk::executeOperations<fk::TransformDPP<>>(stream,
+            fk::executeOperations<fk::TransformDPP<fk::ParArch::GPU_NVIDIA>>(fk::Stream_<fk::ParArch::GPU_NVIDIA>(cv::cuda::StreamAccessor::getStream(cv_stream)),
                 resizeOp,
-                fk::Unary<fk::ColorConversion<fk::COLOR_RGB2BGR, float3, float3>>{},
+                fk::Unary<fk::ColorConversion<fk::ColorConversionCodes::COLOR_RGB2BGR, float3, float3>>{},
                 fk::Binary<fk::Mul<float3>>{fk_val_alpha},
                 fk::Binary<fk::Sub<float3>>{fk_val_sub},
                 fk::Binary<fk::Div<float3>>{fk_val_div},
