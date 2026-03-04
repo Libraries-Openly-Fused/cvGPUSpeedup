@@ -47,7 +47,7 @@ jobs:
           echo "CUDACXX=${env:ProgramFiles}\NVIDIA GPU Computing Toolkit\CUDA\v${{matrix.cuda_version}}\bin\nvcc.exe" >> "$env:GITHUB_ENV"
           echo "CC=${{matrix.host_compiler}}" >> "$env:GITHUB_ENV"
           echo "CXX=${{matrix.host_compiler}}" >> "$env:GITHUB_ENV"
-          echo "OpenCV_DIR=D:\bin\${{matrix.opencv_version}}" >> "$env:GITHUB_ENV
+          echo "OpenCV_DIR=D:\bin\${{matrix.opencv_version}}" >> "$env:GITHUB_ENV"
 
       - name: Detect visual studio installation
         run: |
