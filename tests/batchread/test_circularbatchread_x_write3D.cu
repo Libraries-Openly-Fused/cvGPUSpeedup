@@ -328,7 +328,7 @@ bool testTransposedCircularTensorcvGS() {
     for (int cp = 0; cp < (int)dims.color_planes; cp++) {
         for (int y = 0; y < (int)dims.height; y++) {
             for (int z = 0; z < (int)BATCH; z++) {
-                const auto* plane = fk::PtrAccessor<fk::ND::T3D>::cr_point(fk::Point(0, 0, z), h_myTensor.ptr())
+                const auto* plane = fk::PtrAccessor<fk::ND::T3D>::cr_point(fk::Point{0, 0, z}, h_myTensor.ptr())
                     + (plane_pixels * dims.planes * cp);
                 for (int x = 0; x < (int)dims.width; x++) {
                     correct &= ITERS - z == plane[x + (y * dims.width)];
@@ -386,7 +386,7 @@ bool testTransposedOldestFirstCircularTensorcvGS() {
     for (int cp = 0; cp < (int)dims.color_planes; cp++) {
         for (int y = 0; y < (int)dims.height; y++) {
             for (int z = 0; z < (int)BATCH; z++) {
-                const auto* plane = fk::PtrAccessor<fk::ND::T3D>::cr_point(fk::Point(0, 0, z), h_myTensor.ptr())
+                const auto* plane = fk::PtrAccessor<fk::ND::T3D>::cr_point(fk::Point{0, 0, z}, h_myTensor.ptr())
                     + (plane_pixels * dims.planes * cp);
                 for (int x = 0; x < (int)dims.width; x++) {
                     correct &= ITERS - (BATCH - z - 1) == plane[x + (y * dims.width)];
@@ -446,7 +446,7 @@ bool testOldestFirstCircularTensorcvGS_noSplit() {
     for (int cp = 0; cp < (int)dims.color_planes; cp++) {
         for (int y = 0; y < (int)dims.height; y++) {
             for (int z = 0; z < (int)BATCH; z++) {
-                const float4* plane = fk::PtrAccessor<fk::ND::_3D>::cr_point(fk::Point(0, 0, z), h_myTensor.ptr()) + (plane_pixels * dims.planes * cp);
+                const float4* plane = fk::PtrAccessor<fk::ND::_3D>::cr_point(fk::Point{0, 0, z}, h_myTensor.ptr()) + (plane_pixels * dims.planes * cp);
                 for (int x = 0; x < (int)dims.width; x++) {
                     const float4 groundTruth = fk::make_set<float4>(ITERS - (BATCH - z - 1));
                     const float4 computedValue = plane[x + (y * dims.width)];

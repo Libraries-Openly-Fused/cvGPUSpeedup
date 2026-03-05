@@ -33,15 +33,12 @@ constexpr char VARIABLE_DIMENSION[]{ "Batch size" };
 constexpr size_t FIRST_VALUE = 10;
 constexpr size_t INCREMENT = 10;
 
-#ifndef CUDART_MAJOR_VERSION
-#error CUDART_MAJOR_VERSION Undefined!
-#elif (CUDART_MAJOR_VERSION == 11)
-constexpr size_t NUM_EXPERIMENTS = 4;
-#elif (CUDART_MAJOR_VERSION == 12 && BENCHMARK_ENABLED)
+#if (BENCHMARK_ENABLED)
 constexpr size_t NUM_EXPERIMENTS = 30;
-#elif (CUDART_MAJOR_VERSION == 12)
+#else
 constexpr size_t NUM_EXPERIMENTS = 5;
-#endif // CUDART_MAJOR_VERSION
+#endif // BENCHMARK_ENABLED
+
 constexpr std::array<size_t, NUM_EXPERIMENTS> batchValues = arrayIndexSecuence<FIRST_VALUE, INCREMENT, NUM_EXPERIMENTS>;
 
 template <int CV_TYPE_I, int CV_TYPE_O, const int BATCH>
