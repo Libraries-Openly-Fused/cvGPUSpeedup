@@ -74,7 +74,7 @@ function (add_vertical_fusion_benchmark TARGET_NAME GENERATED_DIR OPTYPE)
     # To pass NUM_EXPERIMENTS_AS_INT to your C++ code (e.g., main.cu)
     # In C++: int max_exp = CPP_NUM_EXPERIMENTS;
     target_compile_definitions(${TARGET_NAME} PRIVATE CPP_NUM_EXPERIMENTS=${NUM_EXPERIMENTS_AS_INT})
-    
+    target_compile_options(${TARGET_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-split-compile=0 --fdevice-time-trace=${TARGET_NAME}>)
 endfunction()
 
 function (add_single_benchmark TARGET_NAME DIR_NAME)
