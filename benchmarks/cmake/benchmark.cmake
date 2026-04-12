@@ -23,7 +23,7 @@ function (generate_vf_kernels NUM_EXPERIMENTS_AS_INT GENERATED_DIR GENERATED_CU_
         configure_file("${IN_KERNEL_CU}" "${CURRENT_MUL_CU}" @ONLY)
 
         list(APPEND GENERATED_CU_FILES_LIST ${CURRENT_MUL_CU})
-
+        set_source_files_properties(${CURRENT_MUL_CU} PROPERTIES COMPILE_OPTIONS  -time=kernel${N}.csv )
         # Append to strings for the main launcher header
         string(APPEND LAUNCHER_INCLUDES_BLOCK "#include \"kernel${N}.h\"\n")
         string(APPEND LAUNCHER_DISPATCH_BLOCK  "DISPATCH_INSTANCE(${N})\n")
@@ -89,6 +89,7 @@ function (add_single_benchmark TARGET_NAME DIR_NAME)
         ${BENCHMARKS_INCLUDE_ROOT}           # For <benchmarks/opencv/...>        
         
     )
+    
     add_fkl_to_target(${TARGET_NAME})                 
     add_opencv_to_target(${TARGET_NAME} "core;cudaarithm;imgproc;cudafilters;cudaimgproc;cudawarping;imgcodecs")
     enable_intellisense(${TARGET_NAME} "${DIR_NAME}")
