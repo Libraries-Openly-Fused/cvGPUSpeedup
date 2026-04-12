@@ -23,7 +23,7 @@ function (generate_vf_kernels NUM_EXPERIMENTS_AS_INT GENERATED_DIR GENERATED_CU_
         configure_file("${IN_KERNEL_CU}" "${CURRENT_MUL_CU}" @ONLY)
 
         list(APPEND GENERATED_CU_FILES_LIST ${CURRENT_MUL_CU})
-
+        set_source_files_properties(${CURRENT_MUL_CU} PROPERTIES COMPILE_OPTIONS  -time=kernel${N}.csv )
         # Append to strings for the main launcher header
         string(APPEND LAUNCHER_INCLUDES_BLOCK "#include \"kernel${N}.h\"\n")
         string(APPEND LAUNCHER_DISPATCH_BLOCK  "DISPATCH_INSTANCE(${N})\n")
@@ -74,7 +74,7 @@ function (add_vertical_fusion_benchmark TARGET_NAME GENERATED_DIR OPTYPE)
     # To pass NUM_EXPERIMENTS_AS_INT to your C++ code (e.g., main.cu)
     # In C++: int max_exp = CPP_NUM_EXPERIMENTS;
     target_compile_definitions(${TARGET_NAME} PRIVATE CPP_NUM_EXPERIMENTS=${NUM_EXPERIMENTS_AS_INT})
-    target_compile_options(${TARGET_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-split-compile=0 --fdevice-time-trace=${TARGET_NAME}>)
+    target_compile_options(${TARGET_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-split-compile=0 >)
 endfunction()
 
 function (add_single_benchmark TARGET_NAME DIR_NAME)
@@ -89,6 +89,7 @@ function (add_single_benchmark TARGET_NAME DIR_NAME)
         ${BENCHMARKS_INCLUDE_ROOT}           # For <benchmarks/opencv/...>        
         
     )
+    
     add_fkl_to_target(${TARGET_NAME})                 
     add_opencv_to_target(${TARGET_NAME} "core;cudaarithm;imgproc;cudafilters;cudaimgproc;cudawarping;imgcodecs")
     enable_intellisense(${TARGET_NAME} "${DIR_NAME}")
