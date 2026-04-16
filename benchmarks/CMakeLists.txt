@@ -24,4 +24,5 @@ add_subdirectory(verticalfusion/vertical_fusion_kernel_instances/mul)
 add_subdirectory(verticalfusion/vertical_fusion_kernel_instances/mul1)
 add_subdirectory(verticalfusion/vertical_fusion_kernel_instances/mul_add)
 add_subdirectory(verticalfusion/vertical_fusion_kernel_instances/mul_add1)
+add_subdirectory(verticalfusion/vertical_fusion_kernel_instances/compile_times)
 

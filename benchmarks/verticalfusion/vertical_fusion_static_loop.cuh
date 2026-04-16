@@ -54,4 +54,24 @@ struct VerticalFusion {
     }
 };
 
+template <int CV_TYPE_I, int CV_TYPE_O, typename DeviceFunction>
+struct VerticalFusion<CV_TYPE_I, CV_TYPE_O, 1, 1, DeviceFunction>
+{
+  static inline void execute(const std::array<cv::cuda::GpuMat, 1> &crops, const cv::cuda::Stream &cv_stream,
+                             const float &alpha, const cv::cuda::GpuMat &d_tensor_output, const cv::Size &cropSize,
+                             const DeviceFunction &dFunc) {
+    using InputType = CUDA_T(CV_TYPE_I);
+    using OutputType = CUDA_T(CV_TYPE_O);
+    using Loop = fk::Binary<fk::StaticLoop<fk::StaticLoop<typename DeviceFunction::Operation, INCREMENT / OPS_PER_ITER>,
+                                           NumOps / INCREMENT>>;
+
+    Loop loop;
+    loop.params = dFunc.params;
+
+    cvGS::executeOperations<false>(crops, cv_stream, cvGS::convertTo<CV_TYPE_I, CV_TYPE_O>((float)alpha),
+                                   fk::Mul<CUDA_T(CV_TYPE_O)>::build(3),
+                                   cvGS::write<CV_TYPE_O>(d_tensor_output, cropSize));
+  }
+};
+
 #endif
