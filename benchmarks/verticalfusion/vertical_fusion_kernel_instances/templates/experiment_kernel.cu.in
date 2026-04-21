@@ -32,5 +32,5 @@ void launch@N@(const std::array<cv::cuda::GpuMat, REAL_BATCH>& crops,
     // NUM_OPS calculation is 1-based for EXPERIMENT_NUMBER
     constexpr size_t NUM_OPS = FIRST_VALUE + (INCREMENT * (EXPERIMENT_NUMBER - 1));
 
-    VerticalFusion<CV_8UC1, CV_32FC1, 2, NUM_OPS, FuncType>::execute(crops, cv_stream, alpha, d_tensor_output, cropSize, dFunc);
+    VerticalFusion<CV_8UC1, CV_32FC1, FIRST_VALUE, NUM_OPS, FuncType>::execute(crops, cv_stream, alpha, d_tensor_output, cropSize, dFunc);
 }

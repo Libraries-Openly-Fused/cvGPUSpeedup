@@ -27,7 +27,7 @@ constexpr std::array<size_t, NUM_EXPERIMENTS> batchValues = arrayIndexSecuence<F
 using namespace fk;
 
 template <int CV_TYPE_I, int CV_TYPE_O, size_t EXPERIMENT_NUMBER>
-bool benchmark_vertical_fusion_loopMul1(size_t NUM_ELEMS_X, size_t NUM_ELEMS_Y, cv::cuda::Stream &cv_stream,
+bool benchmark_vertical_fusion_compile_times(size_t NUM_ELEMS_X, size_t NUM_ELEMS_Y, cv::cuda::Stream &cv_stream,
                                         bool enabled) {
   std::stringstream error_s;
   bool passed = true;
@@ -66,12 +66,11 @@ bool benchmark_vertical_fusion_loopMul1(size_t NUM_ELEMS_X, size_t NUM_ELEMS_Y, 
 
       START_OCV_BENCHMARK
       // OpenCV version
-      constexpr int OPS_PER_ITERATION = 2;
+      constexpr int OPS_PER_ITERATION = 1;
 
       for (int crop_i = 0; crop_i < REAL_BATCH; crop_i++) {
         crops[crop_i].convertTo(d_output_cv[crop_i], CV_TYPE_O, alpha, cv_stream);
         for (int numOp = 0; numOp < NUM_OPS; numOp += OPS_PER_ITERATION) {
-          cv::cuda::multiply(d_output_cv[crop_i], val_mul, d_output_cv[crop_i], 1.0, -1, cv_stream);
           cv::cuda::multiply(d_output_cv[crop_i], val_mul, d_output_cv[crop_i], 1.0, -1, cv_stream);
         }
       }
@@ -83,7 +82,7 @@ bool benchmark_vertical_fusion_loopMul1(size_t NUM_ELEMS_X, size_t NUM_ELEMS_Y, 
       const OutputType val{cvGS::cvScalar2CUDAV<CV_TYPE_O>::get(val_mul)};
 
       // cvGPUSpeedup
-      const auto dFunc = Mul<OutputType>::build(val).then(Mul<OutputType>::build(val));
+      const auto dFunc = Mul<OutputType>::build(val);
       launchPipeline<EXPERIMENT_NUMBER>(crops, cv_stream, alpha, d_output_cvGS, cropSize, dFunc);
       STOP_CVGS_BENCHMARK
 
@@ -139,12 +138,12 @@ bool benchmark_vertical_fusion_loopMul1(size_t NUM_ELEMS_X, size_t NUM_ELEMS_Y, 
 }
 
 template <int CV_TYPE_I, int CV_TYPE_O, size_t... Is>
-bool launch_benchmark_vertical_fusion_loopMul1(const size_t NUM_ELEMS_X, const size_t NUM_ELEMS_Y,
+bool launch_benchmark_vertical_fusion_compile_times(const size_t NUM_ELEMS_X, const size_t NUM_ELEMS_Y,
                                                std::index_sequence<Is...> seq, cv::cuda::Stream cv_stream,
                                                bool enabled) {
     bool passed = true;
 
-    int dummy[] = { (passed &= benchmark_vertical_fusion_loopMul1<CV_TYPE_I, CV_TYPE_O, (Is + 1)>(NUM_ELEMS_X, NUM_ELEMS_Y, cv_stream, enabled), 0)... };
+    int dummy[] = { (passed &= benchmark_vertical_fusion_compile_times<CV_TYPE_I, CV_TYPE_O, (Is + 1)>(NUM_ELEMS_X, NUM_ELEMS_Y, cv_stream, enabled), 0)... };
     (void)dummy;
 
     return passed;
@@ -165,7 +164,7 @@ int launch() {
   constexpr auto iSeq = std::make_index_sequence<NUM_EXPERIMENTS>{};
 #define LAUNCH_TESTS(CV_INPUT, CV_OUTPUT)                                                                              \
   results["launch_benchmark_vertical_fusion_loopMul1"] &=                                                              \
-      launch_benchmark_vertical_fusion_loopMul1<CV_INPUT, CV_OUTPUT>(NUM_ELEMS_X, NUM_ELEMS_Y, iSeq, cv_stream, true);
+      launch_benchmark_vertical_fusion_compile_times<CV_INPUT, CV_OUTPUT>(NUM_ELEMS_X, NUM_ELEMS_Y, iSeq, cv_stream, true);
 
   // Warming up for the benchmarks
   warmup = true;

@@ -18,7 +18,6 @@
 #include <cvGPUSpeedup.cuh>
 
 using MulOutType = float;
-using FuncType = decltype(std::declval<decltype(fk::Mul<MulOutType>::build(std::declval<MulOutType>()))>()
-                    .then(std::declval<decltype(fk::Mul<MulOutType>::build(std::declval<MulOutType>()))>()));
+using FuncType = decltype(fk::Mul<MulOutType>::build(std::declval<MulOutType>()));
 
 #endif // !OPTYPE_H
