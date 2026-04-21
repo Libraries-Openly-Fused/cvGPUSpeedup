@@ -24,7 +24,7 @@ constexpr size_t REAL_BATCH = 50;
 constexpr size_t NUM_EXPERIMENTS = 5;
 constexpr size_t FIRST_VALUE = 2;
 constexpr size_t INCREMENT = 50;
-#elif (CUDART_MAJOR_VERSION == 12)
+#elif (CUDART_MAJOR_VERSION >= 12)
 constexpr size_t NUM_EXPERIMENTS = CPP_NUM_EXPERIMENTS;
 constexpr size_t FIRST_VALUE = 2;
 constexpr size_t INCREMENT = 100;
