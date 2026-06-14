@@ -39,14 +39,13 @@ jobs:
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
       id: strings
       run: |      
-          echo "build-output-dir=${{github.workspace}}/build" >> "$GITHUB_OUTPUT"        
-    
+          echo "build-output-dir=${{github.workspace}}/build" >> "$GITHUB_OUTPUT"              
+          echo "PATH=$HOME/cmake-4.3.3-linux-aarch64/bin/:$PATH" >> "$GITHUB_ENV"
+          echo "CUDACXX=/usr/local/cuda-${{matrix.cuda_version}}/bin/nvcc" >> "$GITHUB_ENV"
+          echo "CC=${{matrix.host_compiler}}" >> "$GITHUB_ENV"
+          echo "CXX=${{matrix.host_compiler}}" >> "$GITHUB_ENV"
     - name: Configure CMake      
-      run: |          
-        export PATH=/home/cudeiro/cmake-4.2.1-linux-aarch64/bin:/usr/lib/llvm-21/bin/:$PATH 
-        export CUDACXX="/usr/local/cuda-${{matrix.cuda_version}}/bin/nvcc"
-        export CC="${{matrix.host_compiler}}"
-        export CXX="${{matrix.host_compiler}}"
+      run: |                   
         cmake -G "Ninja" -B ${{steps.strings.outputs.build-output-dir}}  -DCMAKE_BUILD_TYPE="Release" -S ${{github.workspace}}       
  
     - name: Build
