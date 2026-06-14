@@ -23,10 +23,15 @@ jobs:
           - host_compiler: "clang++"            
             cuda_version: "12.9"
             opencv_version: "opencv-4.12.0"
-          
+          - host_compiler: "g++"            
+            cuda_version: "13.3"
+            opencv_version: "opencv-5.0.0"
+          - host_compiler: "clang++"            
+            cuda_version: "13.3"
+            opencv_version: "opencv-5.0.0"   
         # 
     steps:    
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
 
