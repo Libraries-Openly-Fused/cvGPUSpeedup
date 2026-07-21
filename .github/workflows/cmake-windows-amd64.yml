@@ -16,22 +16,17 @@ jobs:
       matrix:
         #host compiler, version, cuda c ompiler, cuda version,
         include:
-          - host_compiler: "cl.exe"
-            msvc_env_version: "14.44"
-            cuda_version: "12.9"
-            opencv_version: "opencv-4.12.0.cuda12.9"
-          - host_compiler: "cl.exe"
+          - host_compiler: "cl"
             msvc_env_version: "14.44"
             cuda_version: "13.0"
-            opencv_version: "opencv-4.13.0.cuda13.0"
-          - host_compiler: "clang-cl.exe"
-            msvc_env_version: "14.44"
-            cuda_version: "12.9"
-            opencv_version: "opencv-4.12.0.cuda12.9"            
-          - host_compiler: "clang-cl.exe"
-            msvc_env_version: "14.44"
-            cuda_version: "13.0"
-            opencv_version: "opencv-4.13.0.cuda13.0"
+
+          - host_compiler: "cl"
+            msvc_env_version: "14.51"
+            cuda_version: "13.3"            
+          
+          - host_compiler: "clang-cl"
+            msvc_env_version: "14.51"
+            cuda_version: "13.3"       
 
     steps:
       - uses: actions/checkout@v4

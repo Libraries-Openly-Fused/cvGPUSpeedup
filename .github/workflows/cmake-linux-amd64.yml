@@ -17,18 +17,10 @@ jobs:
 
       matrix:         #host,cuda,cuda_version           
          include:
-          - host_compiler: "g++"            
-            cuda_version: "12.9"
-            opencv_version: "opencv-4.12.0"
-          - host_compiler: "g++"            
-            cuda_version: "13.0"
-            opencv_version: "opencv-4.13.0"
-          - host_compiler: "clang++"            
-            cuda_version: "12.9"
-            opencv_version: "opencv-4.12.0"
-          - host_compiler: "clang++"            
-            cuda_version: "13.0"
-            opencv_version: "opencv-4.13.0"
+          - host_compiler: "g++-13"
+            cuda_toolkit: "13.3"                
+          - host_compiler: "clang++-21"
+            cuda_toolkit: "13.3"
           
     steps:    
     - uses: actions/checkout@v4
