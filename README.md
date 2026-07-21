@@ -183,7 +183,7 @@ Then compile:
 
 If the cvGPUSpeedup repo is in /home/user/cvGPUSpeedup
 ```bash
-nvcc -std=c++17 -I/home/user/cvGPUSpeedup/include -o myApp myApp.cu
+nvcc -std=c++20 -I/home/user/cvGPUSpeedup/include -o myApp myApp.cu
 ```
 And that's it!!
 

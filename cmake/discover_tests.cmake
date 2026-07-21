@@ -35,7 +35,7 @@ function (discover_tests DIR)
             add_nvtx_support_to_target(${cuda_target})
         endif()
 
-        set_target_properties(${cuda_target} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)            
+        set_target_properties(${cuda_target} PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)            
         target_include_directories(${cuda_target} PRIVATE "${CMAKE_SOURCE_DIR}/")      
         target_include_directories(${cuda_target} PRIVATE "${CMAKE_SOURCE_DIR}/include")          
         #target_link_libraries(${cuda_target} PRIVATE ${PROJECT_NAME})        

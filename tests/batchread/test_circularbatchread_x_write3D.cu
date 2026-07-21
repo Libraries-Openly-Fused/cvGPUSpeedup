@@ -91,7 +91,7 @@ bool testCircularBatchRead() {
 
 struct OneToOne {
     constexpr static __device__ __forceinline__ uint at(const uint& zIdx) {
-        return zIdx + 1;
+        return zIdx;
     }
 };
 
