@@ -24,7 +24,7 @@ jobs:
           
         # 
     steps:    
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
 
@@ -36,7 +36,7 @@ jobs:
     
     - name: Configure CMake      
       run: |          
-        export PATH=/home/cudeiro/cmake-4.2.1-linux-aarch64/bin:/usr/lib/llvm-21/bin/:$PATH 
+        export PATH=/home/cudeiro/cmake-4.4.0-linux-aarch64/bin:/usr/lib/llvm-21/bin/:$PATH 
         export CUDACXX="/usr/local/cuda-${{matrix.cuda_version}}/bin/nvcc"
         export CC="${{matrix.host_compiler}}"
         export CXX="${{matrix.host_compiler}}"
