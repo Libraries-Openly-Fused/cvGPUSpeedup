@@ -19,17 +19,20 @@ jobs:
           - host_compiler: "cl"
             msvc_env_version: "14.44"
             cuda_version: "13.0"
+            opencv_version: "opencv-4.14.0.cuda13.0.msvc1444"
 
           - host_compiler: "cl"
             msvc_env_version: "14.51"
-            cuda_version: "13.3"            
+            cuda_version: "13.3"       
+            opencv_version: "opencv-4.14.0.cuda13.3.msvc1451"     
           
           - host_compiler: "clang-cl"
             msvc_env_version: "14.51"
             cuda_version: "13.3"       
+            opencv_version: "opencv-4.14.0.cuda13.3.msvc1451"     
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
