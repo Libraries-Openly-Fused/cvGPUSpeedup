@@ -24,14 +24,10 @@
 #include <fused_kernel/core/data/ptr_utils.h>
 #include <cvGPUSpeedup.cuh>
 
-template <int IT, int OT>
+template <uint WIDTH, uint HEIGHT, uint BATCH, int ITERS, int IT, int OT>
 bool testCircularTensorcvGS() {
     using TensorOT = typename fk::VectorTraits<CUDA_T(OT)>::base;
-    constexpr uint BATCH = 15;
-    constexpr uint WIDTH =128;
-    constexpr uint HEIGHT = 128;
     constexpr uint COLOR_PLANES = CV_MAT_CN(IT);
-    constexpr int ITERS = 100;
 
     cvGS::CircularTensor<IT, CV_MAT_DEPTH(OT), COLOR_PLANES, BATCH, fk::CircularTensorOrder::NewestFirst> myTensor(WIDTH, HEIGHT);
     fk::Tensor<TensorOT> h_myTensor(WIDTH, HEIGHT, BATCH, COLOR_PLANES, fk::MemType::HostPinned);
@@ -263,14 +259,37 @@ bool testOldestFirstCircularTensorcvGS_noSplit() {
     return correct;
 }
 
+template <uint WIDTH, uint HEIGHT, uint BATCH, int ITERS, int IT, int OT>
+bool launchTestCircularTensorcvGS() {
+    if (testCircularTensorcvGS<WIDTH, HEIGHT, BATCH, ITERS, IT, OT>()) {
+        std::cout << "testCircularTensorcvGS<" << WIDTH << ", " << HEIGHT << ", " << BATCH << ", " << ITERS << ", " << IT << ", " << OT << "> OK" << std::endl;
+        return true;
+    } else {
+        std::cout << "testCircularTensorcvGS<" << WIDTH << ", " << HEIGHT << ", " << BATCH << ", " << ITERS << ", " << IT << ", " << OT << "> Failed!" << std::endl;
+        return false;
+    }
+}
+
 int launch() {
     int returnValue = 0;
-    if (testCircularTensorcvGS<CV_8UC3, CV_32FC3>()) {
-        std::cout << "testCircularTensorcvGS<CV_8UC3, CV_32FC3> OK" << std::endl;
-    } else {
-        std::cout << "testCircularTensorcvGS<CV_8UC3, CV_32FC3> Failed!" << std::endl;
-        returnValue = -1;
-    }
+
+    bool correct{true};
+    correct &= launchTestCircularTensorcvGS<128, 128, 2, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 3, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 4, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 5, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 6, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 7, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 8, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 9, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 10, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 11, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 12, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 13, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 14, 100, CV_8UC3, CV_32FC3>();
+    correct &= launchTestCircularTensorcvGS<128, 128, 15, 100, CV_8UC3, CV_32FC3>();
+    returnValue = correct ? returnValue : -1;
+
     if (testTransposedCircularTensorcvGS<CV_8UC3, CV_32FC3>()) {
         std::cout << "testTransposedCircularTensorcvGS<CV_8UC3, CV_32FC3> OK" << std::endl;
     } else {
