@@ -406,7 +406,7 @@ bool testPerspectiveBatchNoInput() {
 
     auto fk_outputs = cvGS::gpuMat2RawPtr2D_arr<uchar3>(d_resultscvGS);
     auto writeFunc = fk::PerThreadWrite<fk::ND::_2D, uchar3>::build(fk_outputs);
-    cvGS::executeOperations(stream, readIOp.then(warpFunc), fk::Cast<float3, uchar3>::build(), writeFunc);
+    cvGS::executeOperations(stream, readIOp, warpFunc, fk::Cast<float3, uchar3>::build(), writeFunc);
 
     stream.waitForCompletion();
 
@@ -472,12 +472,14 @@ bool testPerspectiveBatchNotAllNoInput() {
         cv::cuda::warpPerspective(d_imgs[i], d_resultscv[i], perspective_matrices2[i], img.size(), 1, 0, cv::Scalar(), stream);
     }
 
-    const auto warpFunc = cvGS::warp<fk::WarpType::Perspective, CV_8UC3>(d_imgs, perspective_matrices2, img.size(), usedPlanes, cv::Scalar());
+    const auto readIOp = cvGS::getReader<CV_8UC3>(d_img);
+
+    const auto warpFunc = cvGS::warp<fk::WarpType::Perspective, CV_8UC3>(perspective_matrices2, img.size(), usedPlanes, cv::Scalar());
 
     auto fk_outputs = cvGS::gpuMat2RawPtr2D_arr<uchar3>(d_resultscvGS);
     auto writeFunc = fk::PerThreadWrite<fk::ND::_2D, uchar3>::build(fk_outputs);
 
-    cvGS::executeOperations(stream, warpFunc, fk::Cast<float3, uchar3>::build(), writeFunc);
+    cvGS::executeOperations(stream, readIOp, warpFunc, fk::Cast<float3, uchar3>::build(), writeFunc);
 
     stream.waitForCompletion();
 
