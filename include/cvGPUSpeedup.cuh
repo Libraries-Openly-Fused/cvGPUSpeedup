@@ -290,7 +290,7 @@ inline constexpr auto warp(const cv::cuda::GpuMat& input, const cv::Mat& transfo
     if (transform_matrix.type() != CV_64FC1) {
         throw std::runtime_error("Transform matrix type should be CV_64FC1.");
     }
-    const auto read = fk::PerThreadRead<fk::ND::_2D, CUDA_T(InputType)>::build(fk::RawPtr<fk::ND::_2D, CUDA_T(InputType)>{ (CUDA_T(InputType)*)input.data, { static_cast<uint>(input.cols), static_cast<uint>(input.rows), static_cast<uint>(input.step) } });
+    const auto read = getReader<InputType>(input);
     if constexpr (WT == fk::WarpType::Affine) {
         cv::Mat inverse_transform_matrix;
         cv::invertAffineTransform(transform_matrix, inverse_transform_matrix);
@@ -304,6 +304,28 @@ inline constexpr auto warp(const cv::cuda::GpuMat& input, const cv::Mat& transfo
         const auto params = internal::warp_getWarpingPerspectiveParameters(tm_raw, dstSize);
 
         return fk::Warping<fk::WarpType::Perspective, std::decay_t<decltype(read)>>::build({ params, read });
+    }
+}
+
+template <enum fk::WarpType WT>
+inline constexpr auto warp(const cv::Mat& transform_matrix, const cv::Size& dstSize) {
+    if (transform_matrix.type() != CV_64FC1) {
+        throw std::runtime_error("Transform matrix type should be CV_64FC1.");
+    }
+    
+    if constexpr (WT == fk::WarpType::Affine) {
+        cv::Mat inverse_transform_matrix;
+        cv::invertAffineTransform(transform_matrix, inverse_transform_matrix);
+        const double* const tm_raw = inverse_transform_matrix.ptr<double>();
+        const auto params = internal::warp_getWarpingAffineParameters(tm_raw, dstSize);
+
+        return fk::Warping<fk::WarpType::Affine>::build(params);
+    } else {
+        const cv::Mat inverse_transform_matrix(transform_matrix.inv());
+        const double* const tm_raw = inverse_transform_matrix.ptr<double>();
+        const auto params = internal::warp_getWarpingPerspectiveParameters(tm_raw, dstSize);
+
+        return fk::Warping<fk::WarpType::Perspective>::build(params);
     }
 }
 
@@ -400,11 +422,33 @@ inline constexpr auto warp(const std::array<cv::cuda::GpuMat, BATCH>& inputs,
     return readBatch.then(fk_batch_warp);
 }
 
+template <enum fk::WarpType WT, size_t BATCH>
+inline constexpr auto warp(const std::array<cv::Mat, BATCH>& transform_matrices,
+                           const std::array<cv::Size, BATCH>& dstSize) {
+    for (int i = 0; i < BATCH; ++i) {
+        if (transform_matrices[i].type() != CV_64FC1) {
+            throw std::runtime_error("Transform matrix type should be CV_64FC1.");
+        }
+    }
+
+    const auto fk_warpParams = internal::warp_batchParameters<WT>(transform_matrices, dstSize);
+
+    const auto fk_batch_warp = fk::Warping<WT>::build(fk_warpParams);
+
+    return fk_batch_warp;
+}
+
 template <enum fk::WarpType WT, int InputType, size_t BATCH>
 inline constexpr auto warp(const std::array<cv::cuda::GpuMat, BATCH>& inputs,
                            const std::array<cv::Mat, BATCH>& transform_matrices,
                            const cv::Size& dstSize) {
     return warp<WT, InputType>(inputs, transform_matrices, fk::make_set_std_array<BATCH>(dstSize));
+}
+
+template <enum fk::WarpType WT, size_t BATCH>
+inline constexpr auto warp(const std::array<cv::Mat, BATCH>& transform_matrices,
+                           const cv::Size& dstSize) {
+    return warp<WT>(transform_matrices, fk::make_set_std_array<BATCH>(dstSize));
 }
 
 template <enum fk::WarpType WT, int InputType, size_t BATCH>
@@ -433,12 +477,38 @@ inline constexpr auto warp(const std::array<cv::cuda::GpuMat, BATCH>& inputs,
     return readBatch.then(fk_batch_warp);
 }
 
+template <enum fk::WarpType WT, int DEFAULT_TYPE, size_t BATCH>
+inline constexpr auto warp(const std::array<cv::Mat, BATCH>& transform_matrices,
+                           const std::array<cv::Size, BATCH>& dstSize,
+                           const int& usedPlanes, const cv::Scalar& defaultValue) {
+    for (int i = 0; i < usedPlanes; ++i) {
+        if (transform_matrices[i].type() != CV_64FC1) {
+            throw std::runtime_error("Transform matrix type should be CV_64FC1.");
+        }
+    }
+    using DefaultType = CUDA_T(DEFAULT_TYPE);
+    const auto fk_defaultValue = defaultValue == cv::Scalar() ? fk::make_set<DefaultType>(0.f) : cvScalar2CUDAV<DEFAULT_TYPE>::get(defaultValue);
+
+    const auto fk_warpParams = internal::warp_batchParameters<WT>(transform_matrices, dstSize, usedPlanes);
+
+    const auto fk_batch_warp = fk::Warping<WT>::build(usedPlanes, fk_defaultValue, fk_warpParams);
+
+    return fk_batch_warp;
+}
+
 template <enum fk::WarpType WT, int InputType, size_t BATCH>
 inline constexpr auto warp(const std::array<cv::cuda::GpuMat, BATCH>& inputs,
                            const std::array<cv::Mat, BATCH>& transform_matrices,
                            const cv::Size& dstSize,
                            const int& usedPlanes, const cv::Scalar& defaultValue) {
     return warp<WT, InputType>(inputs, transform_matrices, fk::make_set_std_array<BATCH>(dstSize), usedPlanes, defaultValue);
+}
+
+template <enum fk::WarpType WT, int DEFAULT_TYPE, size_t BATCH>
+inline constexpr auto warp(const std::array<cv::Mat, BATCH>& transform_matrices,
+                           const cv::Size& dstSize,
+                           const int& usedPlanes, const cv::Scalar& defaultValue) {
+    return warp<WT, DEFAULT_TYPE>(transform_matrices, fk::make_set_std_array<BATCH>(dstSize), usedPlanes, defaultValue);
 }
 
 template <typename BackIOp, int BATCH>
