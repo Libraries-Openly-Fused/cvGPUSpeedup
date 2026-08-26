@@ -1,4 +1,5 @@
-/* Copyright 2023-2025 Oscar Amoros Huguet
+/* Copyright 2023-2026 Oscar Amoros Huguet
+ * Copyright 2026 Grup Mediapro S.L.U
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,6 +21,19 @@
 #include <opencv2/core/cuda.hpp>
 
 namespace cvGS {
+
+    template <int InputType>
+    inline constexpr auto getReader(const cv::cuda::GpuMat& input) {
+        return fk::PerThreadRead<fk::ND::_2D, CUDA_T(InputType)>::build(
+            fk::RawPtr<fk::ND::_2D, CUDA_T(InputType)>{
+                (CUDA_T(InputType)*)input.data,
+                { static_cast<uint>(input.cols),
+                  static_cast<uint>(input.rows),
+                  static_cast<uint>(input.step) } 
+            }
+        );
+    }
+
     template <int T>
     inline cv::Scalar cvScalar_set(const BASE_CUDA_T(T)& value) {
         if constexpr (CV_MAT_CN(T) == 1) {
