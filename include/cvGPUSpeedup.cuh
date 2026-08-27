@@ -204,18 +204,40 @@ inline constexpr auto splitT(const fk::RawPtr<fk::ND::T3D, typename fk::VectorTr
     return fk::Write<fk::TensorTSplit<CUDA_T(O)>> {output};
 }
 
-template <int INTER_F>
-inline const auto resize(const cv::Size& dsize) {
-    return fk::Resize<static_cast<fk::InterpolationType>(INTER_F)>::build(fk::Size(dsize.width, dsize.height));
+template <int INTER_F, fk::AspectRatio AR = fk::AspectRatio::IGNORE_AR, int DEFAULT_TYPE = CV_32F>
+inline const auto resize(const cv::Size& dsize, cv::Scalar defaultValue = cv::Scalar(0.f)) {
+    if constexpr (AR == fk::AspectRatio::IGNORE_AR) {
+        return fk::Resize<static_cast<fk::InterpolationType>(INTER_F), AR>::build(fk::Size(dsize.width, dsize.height));
+    } else {
+        return fk::Resize<static_cast<fk::InterpolationType>(INTER_F), AR>::build(fk::Size(dsize.width, dsize.height), cvScalar2CUDAV<DEFAULT_TYPE>::get(defaultValue));
+    }
 }
 
-template <int T, int INTER_F>
+template <int INTER_F, fk::AspectRatio AR = fk::AspectRatio::IGNORE_AR, int DEFAULT_TYPE = CV_32F, size_t BATCH = 1>
+inline const auto resize(const std::array<cv::Size, BATCH>& dsizes, const std::array<cv::Scalar, BATCH>& defaultValue = {cv::Scalar(0.f)}) {
+    std::array<fk::Size, BATCH> fk_dsizes{};
+    if constexpr (AR != fk::AspectRatio::IGNORE_AR) {
+        for (int i = 0; i < BATCH; ++i) {
+            fk_dsizes[i] = fk::Size(dsizes[i].width, dsizes[i].height);
+        }
+        return fk::Resize<static_cast<fk::InterpolationType>(INTER_F), AR>::build(fk_dsizes);
+    } else {
+        std::array<decltype(cvScalar2CUDAV<DEFAULT_TYPE>::get(std::declval<cv::Scalar>())), BATCH> fk_defaultValue{};
+        for (int i = 0; i < BATCH; ++i) {
+            fk_dsizes[i] = fk::Size(dsizes[i].width, dsizes[i].height);
+            fk_defaultValue[i] = cvScalar2CUDAV<DEFAULT_TYPE>::get(defaultValue[i]);
+        }
+        return fk::Resize<static_cast<fk::InterpolationType>(INTER_F), AR>::build(fk_dsizes, fk_defaultValue);
+    }
+}
+
+template <int T, int INTER_F, fk::AspectRatio AR = fk::AspectRatio::IGNORE_AR>
 inline const auto resize(const cv::cuda::GpuMat& input, const cv::Size& dsize, double fx, double fy) {
     static_assert(isSupportedInterpolation<INTER_F>, "Interpolation type not supported yet.");
 
     const fk::RawPtr<fk::ND::_2D, CUDA_T(T)> fk_input = gpuMat2Ptr2D<CUDA_T(T)>(input);
     const fk::Size dSize{ dsize.width, dsize.height };
-    return fk::Resize<(fk::InterpolationType)INTER_F>::build(fk_input, dSize, fx, fy);
+    return fk::Resize<(fk::InterpolationType)INTER_F, AR>::build(fk_input, dSize, fx, fy);
 }
 
 template <int T, int INTER_F, size_t NPtr, AspectRatio AR_ = IGNORE_AR>
